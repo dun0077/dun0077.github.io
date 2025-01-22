@@ -1,38 +1,31 @@
-<!DOCTYPE html>
 <html>
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>frame</title>
-<style>
-html, body {
-  height: 100%;
-  width: 100%;
-	overflow: hidden; /* Hide scrollbars */
-}
-.responsive-iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-</style>
-</head>
-<body>
- <div> 
-	<iframe id="sframe" class="responsive-iframe" src="" allowFullScreen="allowFullScreen"></iframe>
-</div>
-<script>
-  var path = new URL(window.location);
-        var formUrl = path.searchParams.get('link');
-        var url = decodeURIComponent(formUrl)
-        document.getElementById('sframe').src = url
-</script>
-</body>
-
+  <head>
+    <title>my Frame</title>
+    <meta name="viewport"content="width=device-width, initial-scale=1" />
+    <style>
+      iframe {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe></iframe>
+    
+    <script>
+      
+      var link = window.location.search;
+      var param = new URLSearchParams(link);
+      var url = param.get('url');
+      var title = param.get('title')
+      
+      if(title != null){document.querySelector('title').innerText = title;}
+      document.querySelector('iframe').src = url;
+    </script>
+    
+  </body>
 </html>
