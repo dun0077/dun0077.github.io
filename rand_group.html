@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดกลุ่มสุ่ม (Random Group Generator)</title>
+    
+    <!-- Google Fonts: Itim -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Itim&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Itim', cursive;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.5);
+        }
+
+        .group-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .group-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Scrollbar custom */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-700 py-8 px-4 sm:px-6 lg:px-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 gradient-text">
+                <i class="fa-solid fa-people-group mr-3"></i>Random Group Generator
+            </h1>
+            <p class="text-slate-500 text-lg">ระบบจัดกลุ่มแบบสุ่ม อัจฉริยะ ใช้งานง่าย</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Input Section (Left Side) -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-panel p-6 rounded-3xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="block text-xl font-bold text-slate-700">
+                            <i class="fa-solid fa-list-ul text-indigo-500 mr-2"></i>รายชื่อ
+                        </label>
+                        <span class="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full" id="count-badge">0 คน</span>
+                    </div>
+                    
+                    <textarea 
+                        id="nameInput" 
+                        class="w-full h-64 p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none bg-slate-50 text-lg transition-all"
+                        placeholder="วางรายชื่อที่นี่...&#10;สมชาย&#10;สมหญิง&#10;จอห์น&#10;เจน"
+                    ></textarea>
+                    
+                    <div class="flex justify-end mt-2">
+                        <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors">
+                            <i class="fa-solid fa-trash mr-1"></i>ล้างข้อมูล
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-3xl">
+                    <label class="block text-xl font-bold text-slate-700 mb-4">
+                        <i class="fa-solid fa-gears text-purple-500 mr-2"></i>ตั้งค่าการสุ่ม
+                    </label>
+
+                    <!-- Mode Toggle -->
+                    <div class="flex p-1 bg-slate-100 rounded-xl mb-6">
+                        <button 
+                            onclick="setMode('groups')" 
+                            id="btn-mode-groups"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-bold shadow-sm bg-white text-indigo-600 transition-all">
+                            จำนวนกลุ่ม
+                        </button>
+                        <button 
+                            onclick="setMode('per-group')" 
+                            id="btn-mode-per-group"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-700 transition-all">
+                            คนต่อกลุ่ม
+                        </button>
+                    </div>
+
+                    <!-- Number Input -->
+                    <div class="mb-6">
+                        <label id="number-label" class="block text-sm font-semibold text-slate-600 mb-2">
+                            ต้องการแบ่งเป็นกี่กลุ่ม?
+                        </label>
+                        <div class="relative">
+                            <button onclick="adjustNumber(-1)" class="absolute left-0 top-0 h-full w-12 text-slate-400 hover:text-indigo-600">
+                                <i class="fa-solid fa-minus"></i>
+                            </button>
+                            <input 
+                                type="number" 
+                                id="numberValue" 
+                                value="2" 
+                                min="1" 
+                                class="w-full text-center py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-2xl text-slate-700 focus:outline-none focus:border-indigo-500"
+                            >
+                            <button onclick="adjustNumber(1)" class="absolute right-0 top-0 h-full w-12 text-slate-400 hover:text-indigo-600">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="generateGroups()" class="btn-primary w-full py-4 rounded-xl text-white text-xl font-bold shadow-lg flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> สุ่มจัดกลุ่มเลย!
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Section (Right Side) -->
+            <div class="lg:col-span-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-700">
+                        <i class="fa-solid fa-square-poll-vertical text-pink-500 mr-2"></i>ผลลัพธ์
+                    </h2>
+                    <div id="action-buttons" class="hidden">
+                        <button onclick="copyResults()" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-50 font-bold transition-colors">
+                            <i class="fa-regular fa-copy mr-2"></i>คัดลอกทั้งหมด
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="flex flex-col items-center justify-center h-96 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200">
+                    <div class="text-slate-300 text-6xl mb-4">
+                        <i class="fa-solid fa-cube"></i>
+                    </div>
+                    <p class="text-slate-400 text-xl font-bold">ยังไม่มีข้อมูลการจัดกลุ่ม</p>
+                    <p class="text-slate-400">กรอกรายชื่อและกดปุ่มสุ่มได้เลย</p>
+                </div>
+
+                <!-- Groups Grid -->
+                <div id="groups-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 hidden">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <i class="fa-solid fa-circle-check text-green-400"></i>
+            <span id="toast-message" class="font-bold">เรียบร้อย!</span>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentMode = 'groups'; // 'groups' or 'per-group'
+        
+        // Elements
+        const nameInput = document.getElementById('nameInput');
+        const countBadge = document.getElementById('count-badge');
+        const groupsContainer = document.getElementById('groups-container');
+        const emptyState = document.getElementById('empty-state');
+        const numberLabel = document.getElementById('number-label');
+        const numberInput = document.getElementById('numberValue');
+        const actionButtons = document.getElementById('action-buttons');
+        
+        // Event Listeners
+        nameInput.addEventListener('input', updateCount);
+
+        function updateCount() {
+            const names = getNames();
+            countBadge.innerText = `${names.length} คน`;
+            // Simple visual feedback
+            countBadge.classList.add('scale-110');
+            setTimeout(() => countBadge.classList.remove('scale-110'), 200);
+        }
+
+        function getNames() {
+            return nameInput.value
+                .split('\n')
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+        }
+
+        function clearInput() {
+            if(confirm('ต้องการล้างรายชื่อทั้งหมด?')) {
+                nameInput.value = '';
+                updateCount();
+                resetView();
+            }
+        }
+
+        function adjustNumber(delta) {
+            const current = parseInt(numberInput.value) || 0;
+            const newVal = current + delta;
+            if (newVal >= 1) {
+                numberInput.value = newVal;
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // UI Toggle logic
+            const btnGroups = document.getElementById('btn-mode-groups');
+            const btnPerGroup = document.getElementById('btn-mode-per-group');
+            
+            if (mode === 'groups') {
+                btnGroups.className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold shadow-sm bg-white text-indigo-600 transition-all";
+                btnPerGroup.className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
+                numberLabel.innerText = "ต้องการแบ่งเป็นกี่กลุ่ม?";
+            } else {
+                btnPerGroup.className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold shadow-sm bg-white text-pink-600 transition-all";
+                btnGroups.className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
+                numberLabel.innerText = "จำนวนคนสูงสุดต่อกลุ่ม?";
+            }
+        }
+
+        function resetView() {
+            groupsContainer.innerHTML = '';
+            groupsContainer.classList.add('hidden');
+            actionButtons.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+        }
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            // While there remain elements to shuffle.
+            while (currentIndex != 0) {
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function generateGroups() {
+            const names = getNames();
+            const settingValue = parseInt(numberInput.value);
+
+            if (names.length === 0) {
+                showToast('กรุณากรอกรายชื่อก่อนนะ!', 'error');
+                return;
+            }
+            
+            if (settingValue < 1) {
+                showToast('จำนวนต้องมากกว่า 0', 'error');
+                return;
+            }
+
+            // Show loading or transition if needed, but we'll generate instantly
+            const shuffledNames = shuffle([...names]);
+            let resultGroups = [];
+
+            if (currentMode === 'groups') {
+                // Logic: Divide into N groups
+                const numGroups = settingValue;
+                resultGroups = Array.from({ length: numGroups }, () => []);
+                
+                shuffledNames.forEach((name, index) => {
+                    resultGroups[index % numGroups].push(name);
+                });
+            } else {
+                // Logic: Max N people per group
+                const maxPerGroup = settingValue;
+                for (let i = 0; i < shuffledNames.length; i += maxPerGroup) {
+                    resultGroups.push(shuffledNames.slice(i, i + maxPerGroup));
+                }
+            }
+
+            renderGroups(resultGroups);
+            showToast(`จัดกลุ่มเรียบร้อย! (${resultGroups.length} กลุ่ม)`);
+        }
+
+        function renderGroups(groups) {
+            emptyState.classList.add('hidden');
+            groupsContainer.classList.remove('hidden');
+            actionButtons.classList.remove('hidden');
+            groupsContainer.innerHTML = '';
+
+            const colors = [
+                'bg-indigo-50 border-indigo-100 text-indigo-700',
+                'bg-purple-50 border-purple-100 text-purple-700',
+                'bg-pink-50 border-pink-100 text-pink-700',
+                'bg-sky-50 border-sky-100 text-sky-700',
+                'bg-emerald-50 border-emerald-100 text-emerald-700',
+                'bg-amber-50 border-amber-100 text-amber-700'
+            ];
+
+            const headerColors = [
+                'bg-indigo-100 text-indigo-800',
+                'bg-purple-100 text-purple-800',
+                'bg-pink-100 text-pink-800',
+                'bg-sky-100 text-sky-800',
+                'bg-emerald-100 text-emerald-800',
+                'bg-amber-100 text-amber-800'
+            ];
+
+            groups.forEach((group, index) => {
+                const colorClass = colors[index % colors.length];
+                const headerColorClass = headerColors[index % headerColors.length];
+                
+                // Delay animation
+                const delay = index * 100;
+                
+                const card = document.createElement('div');
+                card.className = `group-card glass-panel rounded-2xl overflow-hidden fade-in`;
+                card.style.animationDelay = `${delay}ms`;
+                
+                // Header
+                let html = `
+                    <div class="px-5 py-3 flex justify-between items-center ${headerColorClass}">
+                        <h3 class="font-bold text-lg">กลุ่มที่ ${index + 1}</h3>
+                        <span class="text-xs font-bold bg-white/50 px-2 py-1 rounded-lg">${group.length} คน</span>
+                    </div>
+                    <div class="p-5">
+                        <ul class="space-y-2">
+                `;
+                
+                // List
+                if(group.length === 0) {
+                    html += `<li class="text-slate-400 italic text-center text-sm py-2">ไม่มีสมาชิก</li>`;
+                } else {
+                    group.forEach(member => {
+                        html += `
+                            <li class="flex items-center text-slate-700 bg-white/50 p-2 rounded-lg border border-transparent hover:border-slate-200 transition-colors">
+                                <i class="fa-solid fa-user text-xs mr-3 opacity-50"></i>
+                                ${member}
+                            </li>
+                        `;
+                    });
+                }
+
+                html += `
+                        </ul>
+                    </div>
+                `;
+
+                card.innerHTML = html;
+                groupsContainer.appendChild(card);
+            });
+        }
+
+        function copyResults() {
+            // Format text for clipboard
+            let text = "ผลการสุ่มกลุ่ม:\n\n";
+            const cards = groupsContainer.querySelectorAll('.group-card');
+            
+            cards.forEach((card) => {
+                const title = card.querySelector('h3').innerText;
+                const members = Array.from(card.querySelectorAll('li')).map(li => li.innerText.trim()).join(', ');
+                text += `${title}: ${members}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('คัดลอกทั้งหมดแล้ว!');
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = toast.querySelector('i');
+            
+            msgEl.innerText = message;
+            
+            if (type === 'error') {
+                iconEl.className = 'fa-solid fa-circle-exclamation text-red-400';
+            } else {
+                iconEl.className = 'fa-solid fa-circle-check text-green-400';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
