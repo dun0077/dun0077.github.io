@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสุ่มคำศัพท์หรรษา</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #0f172a;
+            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+        }
+
+        /* Running Light Animation */
+        @keyframes border-spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .card-container {
+            position: relative;
+            z-index: 0;
+            overflow: hidden;
+            border-radius: 1rem;
+        }
+
+        .running-light::before {
+            content: '';
+            position: absolute;
+            z-index: -2;
+            left: -50%;
+            top: -50%;
+            width: 200%;
+            height: 200%;
+            background-color: #399953;
+            background-repeat: no-repeat;
+            background-size: 50% 50%, 50% 50%;
+            background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+            background-image: linear-gradient(#06b6d4, #06b6d4), linear-gradient(#f43f5e, #f43f5e), linear-gradient(#eab308, #eab308), linear-gradient(#8b5cf6, #8b5cf6);
+            animation: border-spin 1.5s linear infinite;
+        }
+
+        .running-light::after {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            left: 4px;
+            top: 4px;
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
+            background: #1e293b;
+            border-radius: 0.8rem;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .winner-anim {
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Custom Scrollbar for Textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Header -->
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500 glow-text mb-2">
+            MAGIC RANDOMIZER
+        </h1>
+        <p class="text-slate-400">ระบบสุ่มการ์ดวัดดวง ลุ้นระทึกทุกวินาที</p>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="w-full max-w-md space-y-6">
+        
+        <!-- The Card -->
+        <div id="card-wrapper" class="card-container relative h-64 w-full bg-slate-800 rounded-2xl shadow-2xl flex items-center justify-center p-1 transition-all duration-300">
+            <!-- Inner Content -->
+            <div class="relative z-10 w-full h-full bg-slate-900/90 rounded-xl flex flex-col items-center justify-center p-6 border border-slate-700/50 backdrop-blur-sm">
+                <div id="status-label" class="absolute top-4 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    พร้อมสุ่ม
+                </div>
+                <div id="result-display" class="text-4xl md:text-5xl font-bold text-center text-slate-100 break-words w-full px-2">
+                    ???
+                </div>
+                <div id="confetti-container" class="absolute inset-0 pointer-events-none overflow-hidden rounded-xl"></div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-4">
+            <button onclick="startRandom()" id="btn-spin" class="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="play" class="w-6 h-6 fill-current group-hover:animate-pulse"></i>
+                <span class="text-xl">เริ่มสุ่ม!</span>
+            </button>
+            <button onclick="resetList()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-4 px-6 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2" title="คืนค่าทั้งหมด">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Settings / List Input -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <label class="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                    <i data-lucide="list" class="w-4 h-4"></i>
+                    รายการคำศัพท์ (เหลือ <span id="count-badge">0</span> คำ)
+                </label>
+                <button onclick="toggleEdit()" class="text-xs text-slate-400 hover:text-white underline">
+                    ซ่อน/แสดง รายการ
+                </button>
+            </div>
+            
+            <div id="input-container" class="transition-all duration-300">
+                <textarea id="word-input" 
+                    class="w-full h-32 bg-slate-900 text-slate-200 p-3 rounded-lg border border-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none resize-none font-light"
+                    placeholder="พิมพ์คำศัพท์ที่นี่...&#10;ขึ้นบรรทัดใหม่เพื่อแยกคำ&#10;เช่น:&#10;รางวัลที่ 1&#10;รางวัลที่ 2&#10;รางวัลที่ 3"></textarea>
+                <p class="text-xs text-slate-500 mt-2 text-right">*คำที่สุ่มได้แล้วจะถูกลบออกจากรายการ</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-8 text-slate-600 text-sm">
+        สร้างสรรค์ด้วย ❤️ เพื่อความบันเทิง
+    </footer>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Default Data
+        const defaultWords = [
+            "รางวัลที่ 1", "รางวัลที่ 2", "รางวัลที่ 3", 
+            "บัตรกินข้าวฟรี", "เกลือ", "เสียใจด้วย", 
+            "โชคดีครั้งหน้า", "แจ็คพอตแตก!", "ขนม 1 ห่อ"
+        ];
+
+        // State Variables
+        let words = [];
+        let isSpinning = false;
+        let animationInterval;
+        
+        // DOM Elements
+        const wordInput = document.getElementById('word-input');
+        const display = document.getElementById('result-display');
+        const cardWrapper = document.getElementById('card-wrapper');
+        const spinBtn = document.getElementById('btn-spin');
+        const countBadge = document.getElementById('count-badge');
+        const statusLabel = document.getElementById('status-label');
+
+        // Initial Setup
+        window.addEventListener('DOMContentLoaded', () => {
+            wordInput.value = defaultWords.join('\n');
+            updateCount();
+        });
+
+        // Event Listener for Input Change
+        wordInput.addEventListener('input', updateCount);
+
+        function updateCount() {
+            const list = getWordList();
+            countBadge.innerText = list.length;
+            if (list.length > 0 && display.innerText === "???") {
+                 display.innerText = "พร้อมสุ่ม";
+                 display.classList.add('text-slate-500');
+                 display.classList.remove('text-white', 'glow-text');
+            }
+        }
+
+        function getWordList() {
+            return wordInput.value.split('\n').map(w => w.trim()).filter(w => w !== '');
+        }
+
+        function toggleEdit() {
+            const container = document.getElementById('input-container');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function resetList() {
+            if(confirm('ต้องการรีเซ็ตรายการคำศัพท์ใหม่ทั้งหมดหรือไม่?')) {
+                wordInput.value = defaultWords.join('\n');
+                display.innerText = "???";
+                display.classList.remove('text-cyan-400', 'glow-text', 'winner-anim');
+                display.classList.add('text-white');
+                cardWrapper.classList.remove('running-light');
+                statusLabel.innerText = "พร้อมสุ่ม";
+                statusLabel.className = "absolute top-4 text-xs font-semibold tracking-wider text-slate-500 uppercase";
+                updateCount();
+            }
+        }
+
+        // --- Audio System (Web Audio API) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playTickSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.05);
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playWinSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Chord: C Major
+            const frequencies = [523.25, 659.25, 783.99, 1046.50];
+            
+            frequencies.forEach((freq, index) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                
+                // Attack and Release
+                const now = audioCtx.currentTime;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.2, now + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start(now + (index * 0.05)); // Slight arpeggio effect
+                osc.stop(now + 2);
+            });
+        }
+
+        // --- Main Logic ---
+
+        function startRandom() {
+            words = getWordList();
+
+            if (words.length === 0) {
+                alert("ไม่มีคำศัพท์เหลือให้สุ่มแล้ว! กรุณาเพิ่มคำศัพท์หรือกดรีเซ็ต");
+                return;
+            }
+
+            if (isSpinning) return;
+            isSpinning = true;
+            spinBtn.disabled = true;
+
+            // Visual Setup
+            cardWrapper.classList.add('running-light');
+            display.classList.remove('winner-anim', 'text-cyan-400', 'glow-text');
+            display.classList.add('text-white');
+            statusLabel.innerText = "กำลังสุ่ม...";
+            statusLabel.className = "absolute top-4 text-xs font-bold tracking-wider text-cyan-400 animate-pulse uppercase";
+
+            let duration = 3000; // 3 seconds spin time
+            let intervalTime = 50; // Start speed
+            let elapsedTime = 0;
+
+            // Recursive timeout for variable speed (Spinning effect)
+            function spinLoop() {
+                // Pick a random word for visualization only (not the final result yet)
+                const tempIndex = Math.floor(Math.random() * words.length);
+                display.innerText = words[tempIndex];
+                
+                playTickSound();
+
+                elapsedTime += intervalTime;
+
+                // Slow down logic
+                if (elapsedTime < duration) {
+                    // Increase interval slightly to slow down
+                    if (elapsedTime > duration * 0.7) {
+                        intervalTime += 10; 
+                    }
+                    setTimeout(spinLoop, intervalTime);
+                } else {
+                    finalizeResult();
+                }
+            }
+
+            spinLoop();
+        }
+
+        function finalizeResult() {
+            // Pick real winner
+            const winnerIndex = Math.floor(Math.random() * words.length);
+            const winnerWord = words[winnerIndex];
+
+            // Remove winner from list logic
+            words.splice(winnerIndex, 1);
+            wordInput.value = words.join('\n');
+            updateCount();
+
+            // Visual Finalize
+            display.innerText = winnerWord;
+            cardWrapper.classList.remove('running-light');
+            display.classList.add('winner-anim', 'text-cyan-400', 'glow-text');
+            statusLabel.innerText = "ผู้โชคดีคือ!";
+            statusLabel.className = "absolute top-4 text-xs font-bold tracking-wider text-fuchsia-400 uppercase";
+
+            // Sound & Effects
+            playWinSound();
+            createConfetti();
+
+            // Cleanup
+            isSpinning = false;
+            spinBtn.disabled = false;
+        }
+
+        // --- Confetti Effect (Canvas-less CSS Implementation for performance/simplicity) ---
+        function createConfetti() {
+            const container = document.getElementById('confetti-container');
+            container.innerHTML = ''; // Clear old
+
+            for (let i = 0; i < 30; i++) {
+                const confetto = document.createElement('div');
+                confetto.classList.add('absolute', 'w-2', 'h-2', 'rounded-sm');
+                
+                // Random properties
+                const bgColors = ['#22d3ee', '#e879f9', '#facc15', '#ffffff'];
+                confetto.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+                confetto.style.left = Math.random() * 100 + '%';
+                confetto.style.top = '-10px';
+                
+                // Animation
+                const duration = 1 + Math.random() * 2;
+                confetto.style.transition = `top ${duration}s ease-out, transform ${duration}s linear, opacity ${duration}s ease-in`;
+                
+                container.appendChild(confetto);
+
+                // Trigger animation next frame
+                requestAnimationFrame(() => {
+                    confetto.style.top = '120%';
+                    confetto.style.transform = `rotate(${Math.random() * 360}deg) scale(${Math.random()})`;
+                    confetto.style.opacity = '0';
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>

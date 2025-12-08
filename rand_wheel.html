@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>วงล้อสุ่มเสี่ยงทาย - Ultimate Lucky Wheel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700&display=swap');
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: radial-gradient(circle at center, #2b32b2, #1488cc);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        #canvas-container {
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+        }
+
+        /* Spin Button Animation */
+        .spin-btn {
+            background: linear-gradient(45deg, #FF512F, #DD2476);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(221, 36, 118, 0.6);
+            /* Ensure transform origin is center for smooth scaling if needed */
+            transform-origin: center;
+        }
+        .spin-btn:hover {
+            box-shadow: 0 0 25px rgba(221, 36, 118, 0.9);
+        }
+        .spin-btn:active {
+            /* Fix: Keep translate center when clicking */
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+        .spin-btn:disabled {
+            filter: grayscale(100%);
+            cursor: not-allowed;
+            /* Fix: Keep translate center when disabled (spinning) */
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Modal Animation */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .modal-exit {
+            opacity: 1;
+        }
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 300ms, transform 300ms;
+        }
+        
+        /* Arrow Pointer */
+        .arrow-pointer {
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+            z-index: 10;
+            pointer-events: none; /* 防止箭头阻挡鼠标事件 */
+        }
+
+        textarea {
+            resize: none;
+        }
+    </style>
+</head>
+<body class="text-white h-screen w-screen flex flex-col md:flex-row">
+
+    <!-- Left Panel: Controls -->
+    <div class="w-full md:w-1/3 lg:w-1/4 h-1/3 md:h-full p-4 flex flex-col z-20 glass-panel relative">
+        <h1 class="text-2xl font-bold mb-4 text-center text-yellow-300 drop-shadow-md">🎡 วงล้อสุ่มโดยครูอับดุลเลาะ</h1>
+        
+        <div class="flex-grow flex flex-col mb-4">
+            <label class="text-sm text-gray-200 mb-1">คำศัพท์ (ขึ้นบรรทัดใหม่เพื่อแยกคำ):</label>
+            <textarea id="namesInput" class="flex-grow w-full p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-lg" placeholder="ใส่รายชื่อที่นี่..."></textarea>
+        </div>
+
+        <div class="flex gap-2 mb-2">
+            <button id="updateBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition shadow-lg">
+                🔄 อัปเดตวงล้อ
+            </button>
+            <button id="resetBtn" class="w-1/3 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition shadow-lg">
+                ↩️ คืนค่า
+            </button>
+        </div>
+        
+        <div class="mt-2 text-xs text-center text-gray-300">
+            *คำที่สุ่มได้จะถูกลบออกจากวงล้ออัตโนมัติ
+        </div>
+    </div>
+
+    <!-- Right Panel: The Wheel -->
+    <div class="w-full md:w-2/3 lg:w-3/4 h-2/3 md:h-full relative flex items-center justify-center bg-gray-900/10" id="wheel-area">
+        
+        <div id="canvas-container" class="relative w-[90vmin] h-[90vmin] max-w-[800px] max-h-[800px]">
+            <canvas id="wheelCanvas" class="w-full h-full rounded-full"></canvas>
+            
+            <!-- The Pointer (Triangle) - Moved inside container, fixed position and rotation -->
+            <div class="arrow-pointer absolute -right-[20px] top-1/2 transform -translate-y-1/2 w-0 h-0 
+                border-t-[20px] border-t-transparent
+                border-b-[20px] border-b-transparent
+                border-r-[40px] border-r-white">
+            </div>
+
+            <!-- Spin Button (Center) -->
+            <button id="spinBtn" class="spin-btn absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white text-white font-bold text-xl md:text-2xl z-10 flex items-center justify-center">
+                SPIN
+            </button>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="winnerModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl text-center max-w-md w-full mx-4 shadow-2xl transform scale-90 transition-transform duration-300" id="modalContent">
+            <h2 class="text-3xl font-bold text-yellow-300 mb-2">🎉 คำที่ได้คือ! 🎉</h2>
+            <div id="winnerName" class="text-5xl font-bold text-white my-6 drop-shadow-lg break-words">
+                ...
+            </div>
+            <p class="text-gray-300 mb-6 text-sm">คำนี้ถูกลบออกจากวงล้อแล้ว</p>
+            <button id="closeModalBtn" class="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <!-- Canvas Confetti -->
+    <canvas id="confettiCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-40"></canvas>
+
+    <script>
+        // --- 1. Sound System (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTickSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playWinSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major Arpeggio
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    
+                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                }, i * 100);
+            });
+        }
+
+        // --- 2. Configuration & State ---
+        const defaultNames = [
+            "รางวัลที่ 1", "รางวัลที่ 2", "รางวัลที่ 3", 
+            "บัตรของขวัญ", "กินข้าวฟรี", "ลองใหม่", 
+            "โบนัส", "แจ็คพอต"
+        ];
+        
+        let segments = [...defaultNames];
+        let originalSegments = [...defaultNames]; // For Reset
+        
+        // Colors palette (Bright & Distinct)
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', 
+            '#98D8C8', '#F7DC6F', '#BB8FCE', '#F1948A',
+            '#82E0AA', '#85C1E9', '#D7BDE2', '#F5B041'
+        ];
+
+        // Canvas Setup
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        
+        let currentRotation = 0;
+        let isSpinning = false;
+        let animationId;
+        
+        // Inputs
+        const namesInput = document.getElementById('namesInput');
+        namesInput.value = segments.join('\n');
+
+        // --- 3. Wheel Logic ---
+
+        function resizeCanvas() {
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            // High DPI scaling
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            ctx.scale(dpr, dpr);
+            drawWheel();
+        }
+
+        function drawWheel() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 10; // Padding
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            if (segments.length === 0) {
+                // Empty state
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#333';
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Kanit';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('เพิ่มคำศัพท์ก่อน!', centerX, centerY);
+                return;
+            }
+
+            const arcSize = (2 * Math.PI) / segments.length;
+
+            segments.forEach((segment, i) => {
+                const angle = currentRotation + (i * arcSize);
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.stroke(); // Divider
+
+                // Text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold " + Math.min(24, 300/segments.length + 12) + "px Kanit";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(segment, radius - 20, 5);
+                ctx.restore();
+            });
+
+            // Outer Ring
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+            
+            // Decorative dots on ring
+            for (let i = 0; i < 24; i++) {
+                const angle = (i / 24) * 2 * Math.PI;
+                const dotX = centerX + (radius) * Math.cos(angle);
+                const dotY = centerY + (radius) * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = (i % 2 === 0) ? '#FFD700' : '#FFF';
+                ctx.fill();
+            }
+        }
+
+        function spin() {
+            if (isSpinning || segments.length === 0) return;
+            
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            
+            // Random spin duration and rotations
+            const spinDuration = 5000; // ms
+            const spinRevolutions = 5 + Math.random() * 5; // 5-10 full spins
+            const endRotation = currentRotation + (spinRevolutions * 2 * Math.PI) + (Math.random() * 2 * Math.PI);
+            
+            const startTime = performance.now();
+            let lastTickAngle = currentRotation;
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / spinDuration, 1);
+                
+                // Ease Out Quart
+                const ease = 1 - Math.pow(1 - progress, 4);
+                
+                const newRotation = currentRotation + (endRotation - currentRotation) * ease;
+                
+                // Sound Effect Logic
+                // Trigger sound every time a segment passes the pointer (at 0 rad / right side)
+                const arcSize = (2 * Math.PI) / segments.length;
+                // Calculate "virtual" angle passing the pointer
+                // Pointer is at 0 (Right). 
+                const prevIndex = Math.floor(((2 * Math.PI) - (lastTickAngle % (2 * Math.PI))) / arcSize);
+                const currIndex = Math.floor(((2 * Math.PI) - (newRotation % (2 * Math.PI))) / arcSize);
+                
+                if (prevIndex !== currIndex) {
+                    playTickSound();
+                }
+                lastTickAngle = newRotation;
+
+                // Draw with rotation embedded in segments logic (we updated currentRotation global var)
+                // Actually, my drawWheel uses global currentRotation. Let's update it differently.
+                // To animate, we just update the offset passed to drawWheel or update global var.
+                // Let's update global var but use a temp var for drawing to not mess up state?
+                // No, updating global is fine since we commit to it.
+                
+                // Correction: currentRotation is the START angle of the first segment.
+                // So we just update a temporary variable for the animation loop?
+                // Better: Update a global `displayRotation`?
+                // Let's stick to updating `currentRotation` directly but carefully.
+                // Wait, if I update currentRotation directly, the loop works.
+                
+                // Let's use a temporary variable for the tween, then set currentRotation at end.
+                // Actually, standard way:
+                const animatedRotation = currentRotation + (endRotation - currentRotation) * ease;
+                
+                // We need to pass this into drawWheel. Let's modify drawWheel to take an argument or use a global.
+                // Let's change drawWheel to use `displayRotation`.
+                
+                drawWheelWithRotation(animatedRotation);
+
+                if (progress < 1) {
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    currentRotation = animatedRotation % (2 * Math.PI); // Normalize
+                    document.getElementById('spinBtn').disabled = false;
+                    determineWinner(currentRotation);
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Helper to draw with specific rotation without changing global state permanently until end
+        function drawWheelWithRotation(rotation) {
+             const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 10;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            const arcSize = (2 * Math.PI) / segments.length;
+
+            segments.forEach((segment, i) => {
+                const angle = rotation + (i * arcSize);
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold " + Math.min(24, 300/segments.length + 12) + "px Kanit";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(segment, radius - 20, 5);
+                ctx.restore();
+            });
+             // Outer Ring (Redraw to stay on top)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+            // Dots
+            for (let i = 0; i < 24; i++) {
+                const angle = (i / 24) * 2 * Math.PI;
+                const dotX = centerX + (radius) * Math.cos(angle);
+                const dotY = centerY + (radius) * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = (i % 2 === 0) ? '#FFD700' : '#FFF';
+                ctx.fill();
+            }
+        }
+
+        function determineWinner(finalRotation) {
+            const arcSize = (2 * Math.PI) / segments.length;
+            // The pointer is at 0 (Right). 
+            // We need to find which segment overlaps 0.
+            // Since we draw segments clockwise starting from `finalRotation`, 
+            // the segment at 0 is determined by checking the negative offset.
+            // Or simpler: `(2PI - (finalRotation % 2PI)) % 2PI` gives us the angle from start of array to pointer in CCW.
+            
+            let rotationNormalized = finalRotation % (2 * Math.PI);
+            if(rotationNormalized < 0) rotationNormalized += 2*Math.PI;
+            
+            // Pointer is at 0. So we want to know how far into the array 0 is.
+            // 0 = rotationNormalized + index * arcSize
+            // index * arcSize = -rotationNormalized
+            // index = -rotationNormalized / arcSize
+            
+            // Let's use the visual logic:
+            // The wheel spins clockwise. The pointer is static.
+            // The index under pointer = (TotalSegments - (EffectiveRotation / SegmentSize)) % TotalSegments
+            
+            const index = Math.floor((2 * Math.PI - rotationNormalized) / arcSize) % segments.length;
+            
+            const winner = segments[index];
+            showWinner(winner, index);
+        }
+
+        // --- 4. Modal & Confetti ---
+        
+        function showWinner(name, index) {
+            playWinSound();
+            startConfetti();
+            
+            const modal = document.getElementById('winnerModal');
+            const winnerNameEl = document.getElementById('winnerName');
+            winnerNameEl.innerText = name;
+            
+            modal.classList.remove('hidden');
+            // Small delay for CSS transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('modalContent').classList.remove('scale-90');
+                document.getElementById('modalContent').classList.add('scale-100');
+            }, 10);
+
+            // Setup Removal on Close
+            document.getElementById('closeModalBtn').onclick = () => {
+                modal.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    stopConfetti();
+                    removeWinner(index);
+                }, 300);
+            };
+        }
+
+        function removeWinner(index) {
+            if (segments.length > 0) {
+                segments.splice(index, 1);
+                namesInput.value = segments.join('\n'); // Update Textarea
+                currentRotation = 0; // Reset rotation for visual cleanliness or keep it? 
+                // Better reset to avoid confusion, but animate it? Nah, just redraw.
+                drawWheel();
+            }
+        }
+
+        // --- 5. Event Listeners ---
+        
+        document.getElementById('spinBtn').addEventListener('click', spin);
+        
+        document.getElementById('updateBtn').addEventListener('click', () => {
+            const text = namesInput.value;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+            if (lines.length > 0) {
+                segments = lines;
+                originalSegments = [...lines]; // Update restore point
+                currentRotation = 0;
+                drawWheel();
+            } else {
+                alert('กรุณาใส่คำศัพท์อย่างน้อย 1 คำ');
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (confirm('คุณต้องการคืนค่าคำศัพท์ทั้งหมดใช่ไหม?')) {
+                segments = [...originalSegments];
+                namesInput.value = segments.join('\n');
+                currentRotation = 0;
+                drawWheel();
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- 6. Confetti Logic (Simple Implementation) ---
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiActive = false;
+        let particles = [];
+
+        function startConfetti() {
+            confettiActive = true;
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 10 + 5,
+                    speedY: Math.random() * 3 + 2,
+                    speedX: Math.random() * 4 - 2,
+                    rotation: Math.random() * 360
+                });
+            }
+            requestAnimationFrame(renderConfetti);
+        }
+
+        function stopConfetti() {
+            confettiActive = false;
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+
+        function renderConfetti() {
+            if (!confettiActive) return;
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                p.rotation += 2;
+                
+                if (p.y > confettiCanvas.height) p.y = -10;
+                
+                confettiCtx.save();
+                confettiCtx.translate(p.x, p.y);
+                confettiCtx.rotate(p.rotation * Math.PI / 180);
+                confettiCtx.fillStyle = p.color;
+                confettiCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                confettiCtx.restore();
+            });
+            
+            requestAnimationFrame(renderConfetti);
+        }
+
+        // Init
+        resizeCanvas();
+        
+    </script>
+</body>
+</html>

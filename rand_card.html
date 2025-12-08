@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสุ่มการ์ดคำศัพท์ (Lucky Vocabulary)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 4px;
+        }
+
+        /* Card Styles */
+        .vocab-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .vocab-card.active {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 0 20px #facc15, 0 0 40px #f59e0b;
+            border-color: #facc15;
+            background: linear-gradient(45deg, #4f46e5, #ec4899);
+            z-index: 10;
+        }
+
+        .vocab-card.winner {
+            animation: pulse-winner 1s infinite;
+            background: #22c55e;
+            border-color: #86efac;
+            box-shadow: 0 0 30px #22c55e;
+            color: white;
+        }
+
+        @keyframes pulse-winner {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Button Glow */
+        .glow-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .glow-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            transform: scale(0);
+            transition: transform 0.3s ease-out;
+            pointer-events: none;
+        }
+        .glow-btn:active::after {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4">
+
+    <!-- Header -->
+    <header class="w-full max-w-6xl flex justify-between items-center mb-8 py-4 border-b border-gray-700">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+                Lucky Vocabulary
+            </h1>
+        </div>
+        <button onclick="toggleSettings()" class="p-2 rounded-full hover:bg-gray-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+    </header>
+
+    <main class="w-full max-w-6xl flex flex-col md:flex-row gap-6">
+        
+        <!-- Settings / Input Panel (Left) -->
+        <aside id="settingsPanel" class="hidden md:flex flex-col w-full md:w-1/4 glass-panel rounded-xl p-4 h-fit">
+            <h2 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+                รายการคำศัพท์
+            </h2>
+            <p class="text-xs text-gray-400 mb-2">ใส่คำศัพท์ทีละบรรทัด (Enter เพื่อขึ้นบรรทัดใหม่)</p>
+            <textarea id="vocabInput" class="w-full h-64 bg-gray-900/50 border border-gray-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="Apple&#10;Banana&#10;Cat&#10;Dog&#10;Elephant"></textarea>
+            
+            <div class="flex gap-2 mt-4">
+                <button onclick="updateDeck()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition glow-btn">
+                    อัปเดตการ์ด
+                </button>
+                <button onclick="resetDefault()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm transition" title="Reset to Default">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v3.25a1 1 0 11-2 0V13.05a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="soundToggle" checked class="form-checkbox text-blue-500 rounded focus:ring-0">
+                    <span class="text-sm">เปิดเสียง Sound Effect</span>
+                </label>
+            </div>
+        </aside>
+
+        <!-- Main Game Area (Right) -->
+        <section class="flex-1 flex flex-col items-center">
+            
+            <!-- Cards Grid -->
+            <div id="cardGrid" class="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Cards will be injected here JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <p class="text-xl">ไม่มีการ์ดคำศัพท์เหลือแล้ว</p>
+                <button onclick="resetDefault()" class="mt-4 text-blue-400 hover:text-blue-300 underline">เริ่มใหม่</button>
+            </div>
+
+            <!-- Big Start Button -->
+            <button id="spinBtn" onclick="startRandomizer()" class="group relative px-12 py-6 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 glow-btn">
+                <div class="flex flex-col items-center">
+                    <span class="text-3xl font-black text-white tracking-widest drop-shadow-md">START</span>
+                    <span class="text-xs text-pink-200 uppercase tracking-widest mt-1 group-hover:text-white transition-colors">กดเพื่อสุ่ม</span>
+                </div>
+            </button>
+
+            <div class="mt-6 text-gray-400 text-sm" id="cardCountDisplay">
+                พร้อมสุ่ม <span id="countVal" class="text-white font-bold">0</span> ใบ
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Modal for Winner -->
+    <div id="winnerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-600 p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center transform scale-90 transition-transform duration-300" id="modalContent">
+            <div class="mb-4 text-yellow-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2">ผู้โชคดีคือ!</h2>
+            <div id="winnerText" class="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600 my-6 py-2 break-words">
+                VOCABULARY
+            </div>
+            <p class="text-gray-400 mb-6 text-sm">คำนี้จะถูกลบออกจากระบบ</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg hover:shadow-blue-500/50">
+                ตกลง / ไปต่อ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game State ---
+        let words = [];
+        let isSpinning = false;
+        const defaultWords = [
+            "Apple", "Banana", "Computer", "Database", 
+            "Elephant", "Framework", "GitHub", "HTML", 
+            "Internet", "Java", "Keyboard", "Laptop"
+        ];
+        
+        // --- Audio Context (Synthesizer) ---
+        // ไม่ต้องใช้ไฟล์เสียงภายนอก ใช้ browser สร้างเสียงเอง
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTickSound() {
+            if (!document.getElementById('soundToggle').checked) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playWinSound() {
+            if (!document.getElementById('soundToggle').checked) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Play a major chord fanfare
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major
+            const now = audioCtx.currentTime;
+
+            notes.forEach((freq, index) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + (index * 0.1));
+                
+                gainNode.gain.setValueAtTime(0, now + (index * 0.1));
+                gainNode.gain.linearRampToValueAtTime(0.2, now + (index * 0.1) + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + (index * 0.1) + 1.5);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start(now + (index * 0.1));
+                osc.stop(now + (index * 0.1) + 1.5);
+            });
+        }
+
+        // --- Core Functions ---
+
+        function init() {
+            const inputArea = document.getElementById('vocabInput');
+            // Check if there is existing data in textarea, if not load default
+            if(inputArea.value.trim() === "") {
+                inputArea.value = defaultWords.join('\n');
+            }
+            updateDeck();
+        }
+
+        function updateDeck() {
+            if(isSpinning) return;
+            
+            const input = document.getElementById('vocabInput').value;
+            // Filter empty lines
+            words = input.split('\n').filter(w => w.trim().length > 0);
+            renderGrid();
+        }
+
+        function resetDefault() {
+            if(isSpinning) return;
+            document.getElementById('vocabInput').value = defaultWords.join('\n');
+            updateDeck();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('cardGrid');
+            const emptyState = document.getElementById('emptyState');
+            const spinBtn = document.getElementById('spinBtn');
+            const countVal = document.getElementById('countVal');
+
+            grid.innerHTML = '';
+            
+            countVal.innerText = words.length;
+
+            if (words.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                spinBtn.disabled = true;
+                return;
+            } else {
+                grid.classList.remove('hidden');
+                emptyState.classList.remove('flex');
+                emptyState.classList.add('hidden');
+                spinBtn.disabled = false;
+            }
+
+            words.forEach((word, index) => {
+                const card = document.createElement('div');
+                card.className = 'vocab-card bg-gray-800 border-2 border-gray-600 rounded-xl p-6 flex items-center justify-center min-h-[100px] shadow-lg cursor-default select-none';
+                card.id = `card-${index}`;
+                
+                const text = document.createElement('span');
+                text.className = 'text-xl font-semibold text-gray-200 truncate max-w-full';
+                text.innerText = word;
+                
+                card.appendChild(text);
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('hidden');
+            panel.classList.toggle('flex');
+        }
+
+        // --- Spinning Logic ---
+
+        function startRandomizer() {
+            if (isSpinning || words.length === 0) return;
+            
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('vocabInput').disabled = true;
+
+            // Remove previous winner styles
+            document.querySelectorAll('.vocab-card').forEach(c => {
+                c.classList.remove('active', 'winner');
+            });
+
+            // Randomly decide the winner index ahead of time
+            const winnerIndex = Math.floor(Math.random() * words.length);
+            
+            // Calculate total steps to land on winner
+            // We want to loop through the list at least 2-3 times
+            const minLoops = 2;
+            const extraSteps = winnerIndex; 
+            const totalSteps = (words.length * minLoops) + extraSteps;
+
+            let currentStep = 0;
+            let currentCardIndex = 0;
+            let speed = 50; // Initial speed (ms)
+
+            const animate = () => {
+                // Remove active from all
+                document.querySelectorAll('.vocab-card').forEach(c => c.classList.remove('active'));
+                
+                // Add active to current
+                const card = document.getElementById(`card-${currentCardIndex}`);
+                if(card) {
+                    card.classList.add('active');
+                    playTickSound();
+                }
+
+                currentStep++;
+
+                if (currentStep > totalSteps) {
+                    // STOP
+                    finalizeWinner(winnerIndex);
+                } else {
+                    // Continue spinning
+                    
+                    // Logic to slow down
+                    // When we are in the last loop (words.length steps remaining), slow down exponentially
+                    if (totalSteps - currentStep < words.length) {
+                        speed += 30; // Slow down drastically at the end
+                    } else if (totalSteps - currentStep < words.length * 2) {
+                        speed += 10; // Slow down a bit
+                    }
+
+                    // Move to next card
+                    currentCardIndex = (currentCardIndex + 1) % words.length;
+                    setTimeout(animate, speed);
+                }
+            };
+
+            animate();
+        }
+
+        let currentWinnerIndex = -1;
+
+        function finalizeWinner(index) {
+            const card = document.getElementById(`card-${index}`);
+            card.classList.remove('active');
+            card.classList.add('winner');
+            playWinSound();
+            
+            currentWinnerIndex = index;
+            const winningWord = words[index];
+
+            setTimeout(() => {
+                showModal(winningWord);
+            }, 500);
+        }
+
+        // --- Modal & Removal Logic ---
+
+        function showModal(word) {
+            const modal = document.getElementById('winnerModal');
+            const modalContent = document.getElementById('modalContent');
+            const winnerText = document.getElementById('winnerText');
+
+            winnerText.innerText = word;
+            modal.classList.remove('hidden');
+            // Trigger reflow for transition
+            void modal.offsetWidth; 
+            modal.classList.remove('opacity-0');
+            modalContent.classList.remove('scale-90');
+            modalContent.classList.add('scale-100');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('winnerModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-90');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                removeWinnerAndReset();
+            }, 300);
+        }
+
+        function removeWinnerAndReset() {
+            // Remove from array
+            words.splice(currentWinnerIndex, 1);
+            
+            // Update Textarea
+            document.getElementById('vocabInput').value = words.join('\n');
+            document.getElementById('vocabInput').disabled = false;
+            
+            isSpinning = false;
+            document.getElementById('spinBtn').disabled = false;
+            
+            renderGrid();
+        }
+
+        // Initialize on load
+        window.onload = init;
+
+    </script>
+</body>
+</html>
