@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .hidden { display: none !important; }
+        .tab-active { border-bottom-color: #2563eb !important; color: #2563eb !important; font-weight: 500; }
+        .tab-inactive { border-bottom-color: transparent; color: #6b7280; }
+    </style>
+</head>
+<body>
+
+    <div id="iframeContainer" class="hidden fixed inset-0 w-full h-full z-50 bg-black"></div>
+
+    <div id="appContainer" class="min-h-screen flex flex-col">
+        <nav class="bg-white shadow-sm p-4">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <a href="?" class="text-xl font-bold text-blue-600">ย่อลิ้งค์ไม่มีโฆษณา 100%</a>
+                <div id="navMenu" class="space-x-4"></div>
+            </div>
+        </nav>
+
+        <main class="flex-grow max-w-5xl mx-auto w-full p-6 mt-4">
+            
+            <div id="tabNav" class="hidden flex space-x-6 mb-6 border-b">
+                <button onclick="switchTab('create')" id="tabBtn-create" class="pb-2 border-b-2 transition tab-active">สร้างลิ้งค์</button>
+                <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="pb-2 border-b-2 transition tab-inactive">จัดการลิ้งค์</button>
+                <button onclick="switchTab('admin')" id="tabBtn-admin" class="hidden pb-2 border-b-2 transition tab-inactive">จัดการสมาชิก (Admin)</button>
+            </div>
+
+            <div id="createSection" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 transition-all">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-800">ย่อลิ้งค์ของคุณ</h2>
+                <div class="flex flex-col gap-4">
+                    <input type="url" id="longUrl" placeholder="วางลิ้งค์ที่ยาวเกินไปที่นี่ (ขึ้นต้นด้วย http:// หรือ https://)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <select id="linkType" class="p-3 border border-gray-300 rounded-lg outline-none bg-white md:w-1/3">
+                            <option value="web">ลิ้งค์เว็บทั่วไป (Redirect)</option>
+                            <option value="exec">เว็บแอป (exec)</option>
+                        </select>
+                        <input type="text" id="customId" placeholder="กำหนด ID เอง (เฉพาะสมาชิก)" disabled title="เข้าสู่ระบบเพื่อใช้งาน" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed">
+                        <button onclick="shortenLink()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200 shadow-md">ย่อลิ้งค์</button>
+                    </div>
+                </div>
+
+                <div id="resultBox" class="hidden mt-6 p-6 bg-green-50 rounded-xl border border-green-200 text-center">
+                    <p class="text-sm text-gray-500 mb-1">ลิ้งค์ของคุณพร้อมใช้งานแล้ว</p>
+                    <a id="shortenedUrl" href="#" target="_blank" class="text-xl md:text-2xl font-bold text-green-700 hover:underline break-all block mb-4"></a>
+                    
+                    <div class="flex flex-col items-center">
+                        <img id="qrImage" src="" alt="QR Code" class="w-40 h-40 border-4 border-white shadow-sm rounded mb-4">
+                        <div class="flex gap-3">
+                            <button onclick="copyToClipboard()" class="bg-white text-green-700 border border-green-300 font-medium px-4 py-2 rounded shadow-sm hover:bg-green-100 transition">คัดลอกลิ้งค์</button>
+                            <button onclick="downloadQR()" class="bg-green-600 text-white font-medium px-4 py-2 rounded shadow-sm hover:bg-green-700 transition">ดาวน์โหลด QR Code</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboardSection" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">จัดการลิ้งค์ <span id="adminBadge" class="hidden bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full ml-2">สิทธิ์แอดมิน</span></h2>
+                    <button onclick="loadLinks()" class="text-blue-600 text-sm hover:underline">รีเฟรช</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                                <th class="p-3">ID (ลิ้งค์ย่อ)</th>
+                                <th class="p-3">ลิ้งค์ปลายทาง</th>
+                                <th class="p-3">รูปแบบ</th>
+                                <th class="p-3">จำนวนคลิก</th>
+                                <th class="p-3 text-right">เครื่องมือ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="linksTableBody" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="adminSection" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">จัดการสมาชิก</h2>
+                    <button onclick="loadUsers()" class="text-blue-600 text-sm hover:underline">รีเฟรช</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                                <th class="p-3">System ID</th>
+                                <th class="p-3">ชื่อผู้ใช้ (Username)</th>
+                                <th class="p-3">สิทธิ์ (Role)</th>
+                                <th class="p-3 text-right">เครื่องมือ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="authSection" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100 max-w-md mx-auto mt-8">
+                <h2 id="authTitle" class="text-2xl font-semibold mb-6 text-center text-gray-800">เข้าสู่ระบบ</h2>
+                <input type="text" id="username" placeholder="ชื่อผู้ใช้งาน" class="w-full mb-4 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="password" placeholder="รหัสผ่าน" class="w-full mb-6 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="authBtn" onclick="handleAuth('login')" class="w-full bg-gray-800 text-white font-medium py-3 rounded-lg hover:bg-gray-900 transition">เข้าสู่ระบบ</button>
+                <div class="text-center mt-4">
+                    <a href="#" onclick="toggleAuthMode()" id="authToggleText" class="text-blue-600 text-sm hover:underline">ยังไม่มีบัญชี? สมัครสมาชิก</a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // *** ใส่ลิ้งค์ Web App (GAS) ของคุณที่นี่ ***
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyuar4E5Cp44m3ZI9HjIf8zqqiOoCLl9vGprIIfuMJuxEMKmsemFnci3k3jHabmDockpg/exec';
+        // const BASE_URL = window.location.origin + window.location.pathname;
+		const BASE_URL = "https://dun0077.github.io/s";
+
+        let currentUser = JSON.parse(localStorage.getItem('urlUser')) || null;
+        let isLoginMode = true;
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const p = urlParams.get('p');
+            if (p) {
+                document.getElementById('appContainer').classList.add('hidden');
+                processLinkRequest(p);
+            } else {
+                updateUI();
+            }
+        };
+
+        // --- ระบบ เปิดลิ้งค์ ---
+        async function processLinkRequest(linkId) {
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getLink', linkId: linkId }) });
+                const result = await response.json();
+                if (result.success) {
+                    if (result.link.type === 'web') window.location.replace(result.link.longUrl);
+                    else if (result.link.type === 'exec') {
+                        const iframeContainer = document.getElementById('iframeContainer');
+                        iframeContainer.classList.remove('hidden');
+                        iframeContainer.innerHTML = `<iframe src="${result.link.longUrl}" class="w-full h-full border-0"></iframe>`;
+                    }
+                } else {
+                    document.body.innerHTML = `<div class="p-10 text-center text-red-500 text-xl font-bold">❌ 404: ${result.message}</div>`;
+                }
+            } catch (err) {
+                document.body.innerHTML = `<div class="p-10 text-center text-red-500">❌ Error loading link.</div>`;
+            }
+        }
+
+        // --- ระบบ UI & Tabs ---
+        function updateUI() {
+            const navMenu = document.getElementById('navMenu');
+            const authSection = document.getElementById('authSection');
+            const tabNav = document.getElementById('tabNav');
+            const customIdInput = document.getElementById('customId');
+
+            if (currentUser) {
+                navMenu.innerHTML = `<span class="text-gray-600 text-sm">สวัสดี, <b>${currentUser.username}</b></span><button onclick="logout()" class="text-red-500 text-sm ml-4 font-medium">ออกจากระบบ</button>`;
+                authSection.classList.add('hidden');
+                tabNav.classList.remove('hidden');
+                
+                customIdInput.disabled = false;
+                customIdInput.placeholder = "กำหนด ID เอง (ไม่บังคับ)";
+                customIdInput.title = "";
+
+                document.getElementById('adminBadge').classList.toggle('hidden', currentUser.role !== 'admin');
+                document.getElementById('tabBtn-admin').classList.toggle('hidden', currentUser.role !== 'admin');
+                
+                switchTab('create'); 
+            } else {
+                navMenu.innerHTML = `<button onclick="showAuth()" class="text-blue-600 font-medium text-sm border border-blue-600 px-3 py-1 rounded">เข้าสู่ระบบ / สมัครสมาชิก</button>`;
+                authSection.classList.add('hidden');
+                tabNav.classList.add('hidden');
+                
+                customIdInput.disabled = true;
+                customIdInput.placeholder = "ล็อกอินเพื่อกำหนด ID เอง";
+                
+                switchTab('create');
+            }
+        }
+
+        function switchTab(tabName) {
+            // ซ่อนทุก Section
+            document.getElementById('createSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+            
+            // รีเซ็ตสไตล์ปุ่ม Tab
+            ['create', 'dashboard', 'admin'].forEach(t => {
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if(btn) { btn.classList.remove('tab-active'); btn.classList.add('tab-inactive'); }
+            });
+
+            // แสดง Section ที่เลือก
+            document.getElementById(`${tabName}Section`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+            if(activeBtn) { activeBtn.classList.remove('tab-inactive'); activeBtn.classList.add('tab-active'); }
+
+            if (tabName === 'dashboard') loadLinks();
+            if (tabName === 'admin') loadUsers();
+        }
+
+        // --- ระบบ สร้าง & QR Code ---
+        async function shortenLink() {
+            const longUrl = document.getElementById('longUrl').value;
+            const type = document.getElementById('linkType').value;
+            const customId = document.getElementById('customId').value.trim();
+
+            if (!longUrl) return Swal.fire('แจ้งเตือน', 'กรุณาระบุ URL ก่อน', 'warning');
+            if (!longUrl.startsWith('http')) return Swal.fire('แจ้งเตือน', 'URL ต้องขึ้นต้นด้วย http:// หรือ https://', 'warning');
+
+            Swal.fire({ title: 'กำลังสร้างลิ้งค์...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'createLink', longUrl: longUrl, type: type, customId: customId, ownerId: currentUser ? currentUser.id : 'guest' })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    Swal.close();
+                    const shortUrl = `${BASE_URL}?p=${result.linkId}`;
+                    
+                    document.getElementById('shortenedUrl').innerText = shortUrl;
+                    document.getElementById('shortenedUrl').href = shortUrl;
+                    
+                    // สร้าง QR Code ผ่าน API
+                    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shortUrl)}`;
+                    document.getElementById('qrImage').src = qrApiUrl;
+                    
+                    document.getElementById('resultBox').classList.remove('hidden');
+                    document.getElementById('longUrl').value = ''; 
+                    document.getElementById('customId').value = ''; 
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', result.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
+            }
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('shortenedUrl').innerText;
+            navigator.clipboard.writeText(text);
+            Swal.fire({ icon: 'success', title: 'คัดลอกสำเร็จ!', timer: 1500, showConfirmButton: false });
+        }
+
+        async function downloadQR() {
+            const url = document.getElementById('shortenedUrl').innerText;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}&margin=10`;
+            
+            Swal.fire({ title: 'กำลังเตรียมดาวน์โหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const response = await fetch(qrUrl);
+                const blob = await response.blob();
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `QR_${new URLSearchParams(url.split('?')[1]).get('p')}.png`;
+                link.click();
+                Swal.close();
+            } catch(e) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดาวน์โหลดภาพได้', 'error');
+            }
+        }
+
+        // --- ระบบ จัดการลิ้งค์ & แก้ไข ---
+        //async function loadLinks() {
+        //    const tbody = document.getElementById('linksTableBody');
+        //    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
+
+        //    try {
+        //        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getLinks', userId: currentUser.id, role: currentUser.role }) });
+        //        const result = await response.json();
+
+        //        if (result.success) {
+        //            if (result.data.length === 0) return tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">ยังไม่มีข้อมูล</td></tr>';
+        //            tbody.innerHTML = '';
+        //            result.data.forEach(link => {
+        //                const shortUrl = `${BASE_URL}?p=${link.id}`;
+        //                const badgeClass = link.type === 'exec' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+        //                tbody.innerHTML += `
+        //                    <tr class="border-b hover:bg-gray-50">
+        //                        <td class="p-3"><a href="${shortUrl}" target="_blank" class="text-blue-600 font-medium hover:underline">${link.id}</a></td>
+        //                        <td class="p-3 max-w-[200px] truncate text-gray-500" title="${link.longUrl}">${link.longUrl}</td>
+        //                        <td class="p-3"><span class="px-2 py-1 text-xs rounded-md ${badgeClass}">${link.type.toUpperCase()}</span></td>
+        //                        <td class="p-3 text-center">${link.clicks}</td>
+        //                        <td class="p-3 text-right">
+        //                            <button onclick="openEditModal('${link.id}', '${link.longUrl}', '${link.type}')" class="text-blue-500 hover:bg-blue-50 px-2 py-1 rounded text-sm mr-1">แก้ไข</button>
+        //                            <button onclick="deleteLink('${link.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm">ลบ</button>
+        //                        </td>
+        //                    </tr>
+        //                `;
+        //            });
+        //        }
+        //    } catch (err) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">โหลดข้อมูลล้มเหลว</td></tr>'; }
+        //}
+		
+		async function loadLinks() {
+            const tbody = document.getElementById('linksTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
+
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getLinks', userId: currentUser.id, role: currentUser.role }) });
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data.length === 0) return tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">ยังไม่มีข้อมูล</td></tr>';
+                    tbody.innerHTML = '';
+                    result.data.forEach(link => {
+                        const shortUrl = `${BASE_URL}?p=${link.id}`;
+                        const badgeClass = link.type === 'exec' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+                        tbody.innerHTML += `
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="p-3"><a href="${shortUrl}" target="_blank" class="text-blue-600 font-medium hover:underline">${link.id}</a></td>
+                                <td class="p-3 max-w-[200px] truncate text-gray-500" title="${link.longUrl}">${link.longUrl}</td>
+                                <td class="p-3"><span class="px-2 py-1 text-xs rounded-md ${badgeClass}">${link.type.toUpperCase()}</span></td>
+                                <td class="p-3 text-center">${link.clicks}</td>
+                                <td class="p-3 text-right">
+                                    <button onclick="downloadQRFromTable('${shortUrl}', '${link.id}')" class="text-green-600 hover:bg-green-50 px-2 py-1 rounded text-sm mr-1 transition">โหลด QR</button>
+                                    <button onclick="openEditModal('${link.id}', '${link.longUrl}', '${link.type}')" class="text-blue-500 hover:bg-blue-50 px-2 py-1 rounded text-sm mr-1 transition">แก้ไข</button>
+                                    <button onclick="deleteLink('${link.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm transition">ลบ</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">โหลดข้อมูลล้มเหลว</td></tr>'; }
+        }
+		
+		async function downloadQRFromTable(fullShortUrl, linkId) {
+            // ดึงภาพ QR Code จาก API
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(fullShortUrl)}&margin=10`;
+            
+            Swal.fire({ title: 'กำลังเตรียมดาวน์โหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            try {
+                const response = await fetch(qrUrl);
+                const blob = await response.blob();
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                // ตั้งชื่อไฟล์เป็น QR_ตามด้วยIDลิ้งค์
+                link.download = `QR_${linkId}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                Swal.close();
+            } catch(e) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดาวน์โหลดภาพได้', 'error');
+            }
+        }
+
+        async function openEditModal(oldId, oldUrl, oldType) {
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขลิ้งค์',
+                html: `
+                    <div class="text-left text-sm font-medium mb-1 text-gray-600">ID ลิ้งค์สั้น:</div>
+                    <input id="swal-id" class="swal2-input mt-0 mb-4" value="${oldId}">
+                    <div class="text-left text-sm font-medium mb-1 text-gray-600">ลิ้งค์ปลายทาง (URL):</div>
+                    <input id="swal-url" type="url" class="swal2-input mt-0 mb-4" value="${oldUrl}">
+                    <div class="text-left text-sm font-medium mb-1 text-gray-600">รูปแบบลิ้งค์:</div>
+                    <select id="swal-type" class="swal2-select mt-0 w-full max-w-full text-base">
+                        <option value="web" ${oldType === 'web' ? 'selected' : ''}>เว็บทั่วไป (Redirect)</option>
+                        <option value="exec" ${oldType === 'exec' ? 'selected' : ''}>เว็บแอป (iframe)</option>
+                    </select>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    return {
+                        newId: document.getElementById('swal-id').value.trim(),
+                        newUrl: document.getElementById('swal-url').value.trim(),
+                        newType: document.getElementById('swal-type').value
+                    }
+                }
+            });
+
+            if (formValues) {
+                if (!formValues.newId || !formValues.newUrl) return Swal.fire('แจ้งเตือน', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+                
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'editLink', oldLinkId: oldId, newLinkId: formValues.newId, newLongUrl: formValues.newUrl, newType: formValues.newType, userId: currentUser.id, role: currentUser.role })
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        Swal.fire({ icon: 'success', title: 'บันทึกเรียบร้อย', timer: 1500, showConfirmButton: false });
+                        loadLinks(); // รีเฟรชตาราง
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', result.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
+                }
+            }
+        }
+
+        async function deleteLink(linkId) {
+            const confirm = await Swal.fire({ title: 'ยืนยันการลบ?', text: 'ไม่สามารถกู้คืนได้', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', confirmButtonColor: '#d33' });
+            if (confirm.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteLink', linkId: linkId, userId: currentUser.id, role: currentUser.role }) });
+                    const result = await response.json();
+                    if (result.success) { Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', timer: 1000, showConfirmButton: false }); loadLinks(); } 
+                    else { Swal.fire('ข้อผิดพลาด', result.message, 'error'); }
+                } catch (err) { Swal.fire('ข้อผิดพลาด', 'ลบล้มเหลว', 'error'); }
+            }
+        }
+
+        // --- ระบบ จัดการผู้ใช้ (Admin) ---
+        async function loadUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getUsers', userId: currentUser.id, role: currentUser.role }) });
+                const result = await response.json();
+                if (result.success) {
+                    tbody.innerHTML = '';
+                    result.data.forEach(user => {
+                        const isMe = user.id === currentUser.id;
+                        const roleBadge = user.role === 'admin' ? '<span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Admin</span>' : '<span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Member</span>';
+                        tbody.innerHTML += `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 text-xs text-gray-400">${user.id}</td>
+                                <td class="p-3 font-medium">${user.username} ${isMe ? '<span class="text-xs text-blue-500">(คุณ)</span>' : ''}</td>
+                                <td class="p-3">${roleBadge}</td>
+                                <td class="p-3 text-right">
+                                    ${!isMe ? `<button onclick="deleteUser('${user.id}')" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm">ลบบัญชี</button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) { tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">โหลดข้อมูลล้มเหลว</td></tr>'; }
+        }
+
+        async function deleteUser(targetId) {
+            const confirm = await Swal.fire({ title: 'ลบบัญชีผู้ใช้นี้?', text: 'ลิ้งค์ของผู้ใช้นี้จะกลายเป็น Guest', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', confirmButtonColor: '#d33' });
+            if (confirm.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteUser', targetUserId: targetId, userId: currentUser.id, role: currentUser.role }) });
+                    const result = await response.json();
+                    if (result.success) { Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', timer: 1000, showConfirmButton: false }); loadUsers(); } 
+                    else { Swal.fire('ข้อผิดพลาด', result.message, 'error'); }
+                } catch (err) { Swal.fire('ข้อผิดพลาด', 'ลบล้มเหลว', 'error'); }
+            }
+        }
+
+        // --- ระบบ Auth ---
+        function showAuth() {
+            document.getElementById('createSection').classList.add('hidden');
+            document.getElementById('authSection').classList.remove('hidden');
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('authTitle').innerText = isLoginMode ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก';
+            document.getElementById('authBtn').innerText = isLoginMode ? 'เข้าสู่ระบบ' : 'ลงทะเบียน';
+            document.getElementById('authBtn').setAttribute('onclick', `handleAuth('${isLoginMode ? 'login' : 'register'}')`);
+            document.getElementById('authToggleText').innerText = isLoginMode ? 'ยังไม่มีบัญชี? สมัครสมาชิก' : 'มีบัญชีแล้ว? เข้าสู่ระบบ';
+        }
+
+        async function handleAuth(action) {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if (!user || !pass) return Swal.fire('แจ้งเตือน', 'กรุณากรอกข้อมูล', 'warning');
+            Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: action, username: user, password: pass }) });
+                const result = await response.json();
+                if (result.success) {
+                    localStorage.setItem('urlUser', JSON.stringify(result.user));
+                    currentUser = result.user;
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ', timer: 1000, showConfirmButton: false });
+                    document.getElementById('username').value = ''; document.getElementById('password').value = '';
+                    updateUI();
+                } else { Swal.fire('ข้อผิดพลาด', result.message, 'error'); }
+            } catch (err) { Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อไม่ได้', 'error'); }
+        }
+
+        function logout() {
+            localStorage.removeItem('urlUser');
+            currentUser = null;
+            document.getElementById('resultBox').classList.add('hidden');
+            updateUI();
+        }
+    </script>
+</body>
+</html>
