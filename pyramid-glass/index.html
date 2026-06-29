@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR เรียงแก้วคำศัพท์พยางค์ปิดมลายู</title>
+
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- MediaPipe dependencies (Hands & Camera) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">
+      <h1>AR Cinder-Cup Pyramids</h1>
+      <span>v1.0.0</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-tab="tab-dashboard">Dashboard & ตั้งค่า</button>
+      <button class="nav-btn" data-tab="tab-game">ห้องเล่นเกม (AR / Mouse)</button>
+      <button class="nav-btn" data-tab="tab-leaderboard">ตารางคะแนน (Google Sheet)</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: DASHBOARD & CONFIGURATION -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="grid-2">
+        <!-- left config: Students list and group manager -->
+        <div class="glass-card">
+          <h2>จัดกลุ่มนักเรียน</h2>
+          <label for="student-names-input">รายชื่อนักเรียน (พิมพ์ 1 ชื่อต่อ 1 บรรทัด)</label>
+          <textarea id="student-names-input" rows="8"
+            placeholder="ตัวอย่าง:&#10;สมชาย ใจดี&#10;สมหญิง รักเรียน&#10;นารี สวยงาม"></textarea>
+
+          <div class="grid-2" style="gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <label for="group-mode-select">รูปแบบการจับกลุ่ม</label>
+              <select id="group-mode-select">
+                <label value="count">แบ่งเป็นกี่กลุ่ม</label>
+                <option value="count">แบ่งตามจำนวนกลุ่มทั้งหมด</option>
+                <option value="size">แบ่งกลุ่มละกี่คน</option>
+              </select>
+            </div>
+            <div>
+              <label id="group-size-label" for="group-size-val">จำนวนกลุ่ม / คน</label>
+              <input type="number" id="group-size-val" min="1" value="3">
+            </div>
+          </div>
+
+          <button id="btn-generate-groups" class="btn">
+            สุ่มแบ่งกลุ่มนักเรียน & ลำดับคิว
+          </button>
+
+          <h3 style="margin-top: 1.5rem;">รายชื่อในระบบล่าสุด:</h3>
+          <div id="students-preview-list" class="list-container"></div>
+        </div>
+
+        <!-- Right configurations: Vocabs and database link -->
+        <div class="glass-card flex-col">
+          <h2>คำศัพท์พยางค์ปิด (ภาษามลายู)</h2>
+          <p style="color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.9rem;">
+            กำหนดคำศัพท์ปิดท้าย (พยางค์ปิด) เพื่อให้นักเรียนฝึกออกเสียงสะกด เช่น ตัว s, m เป็นต้น
+          </p>
+
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="text" id="new-word-input" placeholder="คำศัพท์ใหม่ เช่น bas, pin" style="margin-bottom:0;">
+            <button id="btn-add-word" class="btn">เพิ่มคำ</button>
+          </div>
+
+          <div id="words-preview-list" class="list-container" style="max-height: 180px;"></div>
+          <button id="btn-reset-words" class="btn btn-secondary">รีเซ็ตคำเริ่มต้นทั้งหมด</button>
+
+          <h2 style="margin-top: 2rem;">เชื่อมโยง Google Sheet</h2>
+          <label for="gas-url-input">Google Apps Script Web App URL</label>
+          <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <button id="btn-save-gas" class="btn">เชื่อมต่อ & บันทึก</button>
+
+          <h2 style="margin-top: 2rem;">ตั้งเวลาเกม (วินาที)</h2>
+          <label for="global-time-input">ระยะเวลา (วินาที)</label>
+          <input type="number" id="global-time-input" min="10" value="60" style="width:100%;">
+        </div>
+
+      </div>
+      <div class="glass-card">
+        <h2>กลุ่มนักเรียนที่สร้างสำเร็จ</h2>
+        <div id="groups-list-display" class="groups-grid">
+          <p style="color:var(--text-muted)">ยังไม่ได้แบ่งกลุ่มนักเรียน</p>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- TAB 2: AR GAME ROOM -->
+    <div id="tab-game" class="tab-content">
+      <div class="game-container">
+        <!-- Sidebar controls -->
+        <div class="sidebar-panel">
+          <div class="glass-card">
+            <h2>สถานะกล้อง & AI</h2>
+            <div id="tracking-status" class="status-badge connecting">
+              <span class="indicator-dot"></span> กำลังตรวจเช็ค...
+            </div>
+
+            <div class="timer-container">
+              <div>
+                <span
+                  style="font-size: 0.85rem; display:block; color:var(--text-muted); font-weight:700;">เวลาที่เหลือ</span>
+                <span id="timer-display" class="timer-val">60s</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 1.25rem; display: flex; flex-direction:column; gap:0.5rem;">
+              <button id="btn-start-game" class="btn">เริ่มการแข่งขัน (1 นาที)</button>
+              <button id="btn-next-group" class="btn btn-secondary">กลุ่มถัดไป</button>
+            </div>
+          </div>
+
+          <div class="glass-card" style="flex-grow: 1;">
+            <h2>ลำดับคิวกลุ่มนักเรียน</h2>
+            <div id="queue-display-list">
+              <p style="color:var(--text-muted)">กรุณาแบ่งกลุ่มจากแท็บ Dashboard ก่อน</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Arena / Video view -->
+        <div class="glass-card" style="padding: 0; display:flex; flex-direction:column;">
+          <div
+            style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <h3 id="current-group-title" style="margin: 0; color: #fff;">พร้อมเริ่มเกม</h3>
+            <span id="live-score-display" style="font-weight:700; color: var(--secondary)">ความสูง: ชั้น 0 (วางแล้ว 0
+              แก้ว)</span>
+          </div>
+          <div class="game-canvas-area">
+            <video id="webcam-video" autoplay playsinline muted></video>
+            <canvas id="game-canvas" width="800" height="650"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: LEADERBOARD -->
+    <div id="tab-leaderboard" class="tab-content">
+      <div class="glass-card">
+        <h2>ตารางคะแนนรวม (Leaderboard)</h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">คะแนนจะถูกดึงและบันทึกอัตโนมัติไปยังฐานข้อมูล Google
+          Sheet</p>
+        <div id="db-status-warning"></div>
+
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>อันดับ</th>
+              <th>ชื่อกลุ่ม</th>
+              <th>สมาชิกในกลุ่ม</th>
+              <th>ความสูง / แก้วที่วาง</th>
+              <th>จำนวนแก้วสะสม</th>
+              <th>เวลาที่บันทึก</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-list">
+            <tr>
+              <td colspan="6" style="text-align:center; color: var(--text-muted)">กำลังเชื่อมข้อมูลตารางคะแนน...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: Peer verification verification -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="color: #fff; font-size: 1.5rem; margin-bottom: 1rem;">ยืนยันคำสะกดและการออกเสียง!</h3>
+      <p style="color:var(--text-muted); margin-bottom: 1.5rem;">ผู้เล่นต้องอ่านคำนี้ให้เพื่อนในกลุ่มฟังอย่างชัดเจน:</p>
+      <div id="modal-word-display"
+        style="font-size: 3.5rem; font-weight:800; color: var(--primary); letter-spacing: 2px; margin-bottom: 2rem;">BAS
+      </div>
+      <p style="color:var(--text-muted); margin-bottom: 1.5rem;">เพื่อนยืนยันว่าออกเสียงสะกดพยัญชนะท้ายถูกต้องหรือไม่?
+      </p>
+      <div style="display:flex; gap: 1rem; justify-content: center;">
+        <button id="btn-word-correct" class="btn" style="background:#10b981">ถูกต้อง (วางแก้วได้)</button>
+        <button id="btn-word-wrong" class="btn btn-danger">ไม่ถูกต้อง (เริ่มใหม่)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Winner Display -->
+  <div id="score-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h2 style="border:none; text-align:center; color: var(--secondary); font-size: 2.2rem; margin-bottom: 1rem;">🏁
+        สิ้นสุดเวลา! 🏁</h2>
+      <h3 id="modal-winner-text" style="font-size: 1.6rem; color: #fff; margin-bottom: 1rem;">กลุ่มที่ 1</h3>
+      <div id="modal-score-details" style="margin-bottom: 2rem;"></div>
+      <button id="btn-close-score" class="btn">ตกลง</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
