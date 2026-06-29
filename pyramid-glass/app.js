@@ -287,6 +287,15 @@ function onHandResults(results) {
     for (let index = 0; index < results.multiHandLandmarks.length; index++) {
       if (index >= 2) break; // Limit to 2 hands max
 
+      // ---- RIGHT HAND ONLY ----
+      // MediaPipe คืน handedness ในภาพที่ mirror แล้ว:
+      // ผู้ใช้ยกมือขวา → label = "Left" (เพราะกล้องกลับซ้าย-ขวา)
+      const handedness = results.multiHandedness && results.multiHandedness[index];
+      const label = handedness ? handedness.label : null;
+      // label === "Left" หมายถึงมือขวาของผู้ใช้จริงๆ (mirror)
+      const isRightHand = (label === "Left");
+      if (!isRightHand) continue; // ข้ามมือซ้ายทั้งหมด
+
       const landmarks = results.multiHandLandmarks[index];
 
       // Index finger tip (Landmark 8) and Thumb tip (Landmark 4)
@@ -301,11 +310,12 @@ function onHandResults(results) {
       const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
       const isPinching = distance < 0.08; // Pinch threshold
 
-      state.pinchPoints[index].x = px;
-      state.pinchPoints[index].y = py;
-      state.pinchPoints[index].active = true;
+      // Use slot 0 for the right hand pointer (only 1 hand used now)
+      state.pinchPoints[0].x = px;
+      state.pinchPoints[0].y = py;
+      state.pinchPoints[0].active = true;
 
-      handlePinchDrag(index, px, py, isPinching);
+      handlePinchDrag(0, px, py, isPinching);
     }
   }
 }
@@ -313,7 +323,12 @@ function onHandResults(results) {
 function handlePinchDrag(handIdx, px, py, isPinching) {
   const pointer = state.pinchPoints[handIdx];
 
+  // ถ้า modal ยืนยันคำสะกดกำลังแสดงอยู่ → ล็อคแก้วไว้ที่เดิม ไม่ตามมือ
+  const modalOpen = document.getElementById("confirm-modal").classList.contains("active");
+
   if (isPinching) {
+    if (modalOpen) return; // Modal เปิดอยู่ → ห้ามจับหรือลากแก้ว
+
     // Attempt to grab a cup only if no cup is globally held
     if (pointer.cupIndex === null && state.currentHeldCup === null) {
       // Try to grab a cup close to this point
@@ -326,7 +341,7 @@ function handlePinchDrag(handIdx, px, py, isPinching) {
         }
       }
     } else if (pointer.cupIndex !== null) {
-      // Drag cup
+      // Drag cup (แก้วตามมือเมื่อ modal ปิดเท่านั้น)
       const cup = state.cups[pointer.cupIndex];
       cup.targetX = px;
       cup.targetY = py;
@@ -334,7 +349,9 @@ function handlePinchDrag(handIdx, px, py, isPinching) {
   } else {
     // Release cup if held
     if (pointer.cupIndex !== null) {
-      snapCupToSlot(pointer.cupIndex);
+      if (!modalOpen) {
+        snapCupToSlot(pointer.cupIndex);
+      }
       // Clear global held reference
       if (state.currentHeldCup === pointer.cupIndex) {
         state.currentHeldCup = null;
@@ -901,4 +918,17 @@ window.addEventListener("DOMContentLoaded", () => {
   loadSettingsData();
   fetchDataFromGAS();
   drawGame();
+
+  // แสดงเวลาเริ่มต้นตามที่ครูกำหนดไว้ใน global-time-input
+  const timerDisplay = document.getElementById("timer-display");
+  const globalTimeInput = document.getElementById("global-time-input");
+  timerDisplay.innerText = `${state.globalTimeLimit}s`;
+
+  // อัปเดต timer-display ทันทีเมื่อครูเปลี่ยนค่าเวลา (ก่อนเริ่มเกม)
+  globalTimeInput.addEventListener("input", () => {
+    if (!state.gameActive) {
+      const val = parseInt(globalTimeInput.value, 10) || 60;
+      timerDisplay.innerText = `${val}s`;
+    }
+  });
 });
