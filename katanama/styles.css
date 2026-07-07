@@ -1,0 +1,527 @@
+:root {
+  --ink: #17201d;
+  --muted: #62706b;
+  --line: #dfe7e2;
+  --panel: #ffffff;
+  --bg: #f4f7f1;
+  --leaf: #1f7a4d;
+  --mint: #dff4e8;
+  --gold: #b7791f;
+  --rose: #b43b4f;
+  --sky: #216a8f;
+  --shadow: 0 18px 42px rgba(30, 45, 38, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px;
+  background: #fdfefb;
+  border-right: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--leaf);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+h1, h2, h3, p {
+  margin: 0;
+}
+
+.brand h1 {
+  font-size: 18px;
+}
+
+.brand p, .eyebrow, .teacher-panel label, .hud span, .metric span, .student-now span, .mini-stats span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nav-tabs {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-tab {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.nav-tab.active {
+  background: var(--mint);
+  color: #0e5f38;
+  font-weight: 700;
+}
+
+.teacher-panel, .queue-panel, .stage-panel, .settings-panel, .metric, .table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.teacher-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  margin-top: auto;
+}
+
+input, select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.save-row, .top-actions, .queue-header, .panel-title, .inline-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-row {
+  justify-content: space-between;
+}
+
+#syncState {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+main {
+  min-width: 0;
+  padding: 26px;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.topbar h2 {
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.15;
+}
+
+.primary-btn, .success-btn, .secondary-btn, .icon-btn {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-weight: 700;
+}
+
+.primary-btn {
+  background: var(--sky);
+  color: #fff;
+}
+
+.success-btn {
+  background: var(--leaf);
+  color: #fff;
+}
+
+.secondary-btn, .icon-btn {
+  background: #eef4f0;
+  color: var(--ink);
+}
+
+.icon-btn {
+  width: 42px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+}
+
+.stage-panel {
+  overflow: hidden;
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.hud div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.hud strong {
+  font-size: 22px;
+}
+
+.camera-stage {
+  position: relative;
+  height: min(68vh, 620px);
+  min-height: 430px;
+  overflow: hidden;
+  background: #dbe8e1;
+  touch-action: none;
+}
+
+#camera, #overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+#overlay {
+  pointer-events: none;
+}
+
+.stage-notice {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
+  text-align: center;
+  font-weight: 700;
+}
+
+.card-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.word-card {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  min-height: 78px;
+  padding: 10px;
+  border: 3px solid #fff;
+  border-radius: 8px;
+  background: #fff7d6;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  color: #2b2518;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.word-card.grabbed {
+  background: #d7f7ff;
+  transform: scale(1.04);
+}
+
+.drop-zone {
+  position: absolute;
+  bottom: 30px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: min(30%, 260px);
+  height: 126px;
+  border: 4px dashed rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  color: #fff;
+  text-align: center;
+}
+
+.drop-zone strong {
+  font-size: 22px;
+}
+
+.drop-zone span {
+  font-size: 14px;
+}
+
+.drop-zone.left {
+  left: 26px;
+  background: rgba(31, 122, 77, 0.78);
+}
+
+.drop-zone.right {
+  right: 26px;
+  background: rgba(180, 59, 79, 0.78);
+}
+
+.drop-zone.flash-good {
+  border-color: #ffe066;
+}
+
+.drop-zone.flash-bad {
+  border-color: #1b1b1b;
+}
+
+.hand-pointer {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 4px solid #ffe066;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
+  display: none;
+  pointer-events: none;
+}
+
+.hand-pointer.pinching {
+  background: rgba(255, 224, 102, 0.35);
+}
+
+.queue-panel {
+  padding: 16px;
+}
+
+.queue-header, .panel-title {
+  justify-content: space-between;
+}
+
+.student-now {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  margin: 14px 0;
+  border-radius: 8px;
+  background: #f3f7fa;
+}
+
+.student-now strong {
+  font-size: 24px;
+}
+
+.mini-stats, .dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.mini-stats div {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8faf7;
+}
+
+.student-list, .editor-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+
+.student-list li, .editor-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.student-list .played {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.dashboard-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 18px;
+}
+
+.metric {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+}
+
+.metric strong {
+  font-size: 32px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+th, td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+}
+
+.settings-panel {
+  padding: 18px;
+}
+
+.settings-panel.wide {
+  grid-column: 1 / -1;
+}
+
+.inline-form {
+  margin-top: 14px;
+}
+
+.inline-form label {
+  min-width: 80px;
+  color: var(--muted);
+}
+
+.editor-row.word {
+  grid-template-columns: 1fr minmax(170px, 220px) auto;
+}
+
+.delete-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #fde8ec;
+  color: var(--rose);
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .play-layout, .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  main, .sidebar {
+    padding: 16px;
+  }
+
+  .topbar, .top-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hud {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-stage {
+    min-height: 520px;
+  }
+
+  .word-card {
+    width: 128px;
+    font-size: 19px;
+  }
+
+  .drop-zone {
+    width: calc(50% - 32px);
+    height: 112px;
+  }
+
+  .drop-zone strong {
+    font-size: 16px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-row.word {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>เกมแยกคำศัพท์ภาษามลายู</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">جا</div>
+          <div>
+            <h1>เกมแยกคำศัพท์</h1>
+            <p>Bahasa Melayu</p>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="เมนูหลัก">
+          <button class="nav-tab active" data-view="playView" type="button">เล่นเกม</button>
+          <button class="nav-tab" data-view="dashboardView" type="button">แดชบอร์ด</button>
+          <button class="nav-tab" data-view="settingsView" type="button">ตั้งค่า</button>
+        </nav>
+
+        <section class="teacher-panel">
+          <label for="scriptUrl">ลิงก์บันทึก Google Sheet</label>
+          <input id="scriptUrl" type="url" placeholder="https://script.google.com/.../exec" />
+          <div class="save-row">
+            <button id="saveUrlBtn" class="secondary-btn" type="button">บันทึกลิงก์</button>
+            <span id="syncState">ยังไม่เชื่อมต่อ</span>
+          </div>
+        </section>
+      </aside>
+
+      <main>
+        <section id="playView" class="view active">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">โหมดหน้ากล้อง</p>
+              <h2>จีบนิ้วจับบัตรคำศัพท์ แล้ววางลงกล่อง</h2>
+            </div>
+            <div class="top-actions">
+              <button id="randomBtn" class="primary-btn" type="button">สุ่มนักเรียน</button>
+              <button id="startBtn" class="success-btn" type="button">เริ่มเล่น</button>
+            </div>
+          </header>
+
+          <div class="play-layout">
+            <section class="stage-panel">
+              <div class="hud">
+                <div>
+                  <span>ผู้เล่น</span>
+                  <strong id="currentStudent">รอสุ่มชื่อ</strong>
+                </div>
+                <div>
+                  <span>เวลา</span>
+                  <strong id="timerText">01:30</strong>
+                </div>
+                <div>
+                  <span>คะแนน</span>
+                  <strong id="scoreText">0</strong>
+                </div>
+              </div>
+
+              <div id="cameraStage" class="camera-stage">
+                <video id="camera" playsinline muted></video>
+                <canvas id="overlay"></canvas>
+                <div id="cardLayer" class="card-layer"></div>
+                <div class="drop-zone left" data-category="proper">
+                  <strong>Kata nama khas</strong>
+                  <span>ชื่อเฉพาะ</span>
+                </div>
+                <div class="drop-zone right" data-category="common">
+                  <strong>Kata nama am</strong>
+                  <span>คำนามทั่วไป</span>
+                </div>
+                <div id="handPointer" class="hand-pointer" aria-hidden="true"></div>
+                <div id="stageNotice" class="stage-notice">
+                  กดเริ่มเล่นเพื่อเปิดกล้อง หรือใช้เมาส์ลากบัตรคำศัพท์ได้
+                </div>
+              </div>
+            </section>
+
+            <section class="queue-panel">
+              <div class="queue-header">
+                <h3>คิวสุ่ม</h3>
+                <button id="resetQueueBtn" class="icon-btn" type="button" title="รีเซ็ตคิว">↻</button>
+              </div>
+              <div class="student-now">
+                <span>คนถัดไป</span>
+                <strong id="nextStudent">ยังไม่สุ่ม</strong>
+              </div>
+              <div class="mini-stats">
+                <div><span>เหลือ</span><strong id="remainingCount">0</strong></div>
+                <div><span>เล่นแล้ว</span><strong id="playedCount">0</strong></div>
+              </div>
+              <ul id="studentQueue" class="student-list"></ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="dashboardView" class="view">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">สำหรับครู</p>
+              <h2>แดชบอร์ดคะแนน</h2>
+            </div>
+            <button id="exportBtn" class="secondary-btn" type="button">ส่งออก CSV</button>
+          </header>
+          <div class="dashboard-grid">
+            <article class="metric">
+              <span>จำนวนรอบที่เล่น</span>
+              <strong id="roundsMetric">0</strong>
+            </article>
+            <article class="metric">
+              <span>คะแนนเฉลี่ย</span>
+              <strong id="avgMetric">0</strong>
+            </article>
+            <article class="metric">
+              <span>ส่งเข้าชีตสำเร็จ</span>
+              <strong id="syncedMetric">0</strong>
+            </article>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>เวลา</th>
+                  <th>นักเรียน</th>
+                  <th>คะแนน</th>
+                  <th>ถูก</th>
+                  <th>ผิด</th>
+                  <th>สถานะชีต</th>
+                </tr>
+              </thead>
+              <tbody id="scoreTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="settingsView" class="view">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">ตั้งค่าก่อนเล่น</p>
+              <h2>คำศัพท์ นักเรียน และเวลา</h2>
+            </div>
+            <button id="saveSettingsBtn" class="primary-btn" type="button">บันทึกตั้งค่า</button>
+          </header>
+
+          <div class="settings-grid">
+            <section class="settings-panel">
+              <h3>เวลาเล่น</h3>
+              <div class="inline-form">
+                <label for="durationInput">วินาที</label>
+                <input id="durationInput" type="number" min="20" max="600" step="10" />
+              </div>
+            </section>
+
+            <section class="settings-panel">
+              <div class="panel-title">
+                <h3>รายชื่อนักเรียน</h3>
+                <button id="addStudentBtn" class="secondary-btn" type="button">เพิ่มชื่อ</button>
+              </div>
+              <div id="studentEditor" class="editor-list"></div>
+            </section>
+
+            <section class="settings-panel wide">
+              <div class="panel-title">
+                <h3>บัตรคำศัพท์</h3>
+                <button id="addWordBtn" class="secondary-btn" type="button">เพิ่มคำ</button>
+              </div>
+              <div id="wordEditor" class="editor-list"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
