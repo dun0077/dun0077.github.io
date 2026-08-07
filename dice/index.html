@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎲 ลูกเต๋ามหัศจรรย์</title>
+  <meta name="description" content="เว็บแอปโยนลูกเต๋าที่กำหนดจำนวนและข้อความได้เอง พร้อมแอนิเมชั่นสุดสมจริง" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090f;
+      --surface: #111120;
+      --surface2: #191928;
+      --surface3: #212135;
+      --border: rgba(255,255,255,0.07);
+      --text: #e8e8f5;
+      --text-muted: #6060a0;
+      --accent: #7c5cfc;
+      --accent2: #c45cfc;
+      --glow: rgba(124,92,252,0.4);
+      --radius: 18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -2;
+      background:
+        radial-gradient(ellipse 90% 55% at 15% 5%,  rgba(124,92,252,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 85% 95%, rgba(196,92,252,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(92,140,252,0.06) 0%, transparent 55%);
+    }
+
+    /* Animated background dots */
+    .bg-dots {
+      position: fixed; inset: 0; z-index: -1;
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* ─── Header ─── */
+    header {
+      text-align: center;
+      padding: 3.5rem 1rem 2rem;
+      position: relative;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(124,92,252,0.15);
+      border: 1px solid rgba(124,92,252,0.3);
+      color: #a080ff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 50px;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff 0%, #c8b0ff 40%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin-bottom: 0.6rem;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      font-weight: 400;
+    }
+
+    /* ─── Main Layout ─── */
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* ─── Glass Card ─── */
+    .glass {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    /* ─── Section Title ─── */
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── Setup Section ─── */
+    #setup-section { padding: 1.75rem; margin-bottom: 1.5rem; }
+
+    .dice-count-row {
+      display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .dice-count-row label {
+      font-weight: 700; font-size: 1.05rem;
+      color: var(--text);
+    }
+    .count-control {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .count-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--surface3);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      font-size: 1.4rem; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
+      line-height: 1;
+    }
+    .count-btn:hover {
+      background: var(--accent);
+      box-shadow: 0 0 16px var(--glow);
+      transform: scale(1.12);
+    }
+    .count-btn:active { transform: scale(0.93); }
+    #dice-count-display {
+      font-size: 1.7rem; font-weight: 900;
+      min-width: 2.8rem; text-align: center;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--glow);
+    }
+
+    /* ─── Die Config ─── */
+    #dice-configs { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .die-config {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1.2rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.5rem 1.1rem;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+    .die-config:hover { border-color: rgba(124,92,252,0.25); }
+
+    .die-label {
+      font-weight: 800; font-size: 0.88rem;
+      padding: 0.38rem 0.9rem;
+      border-radius: 8px;
+      color: #fff;
+      text-align: center;
+      min-width: 56px;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    }
+    .die-config input[type="text"] {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.55rem 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .die-config input[type="text"]:focus {
+      border-color: var(--accent);
+      background: rgba(124,92,252,0.07);
+      box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+    }
+    .die-config input[type="text"]::placeholder { color: var(--text-muted); }
+
+    .hint {
+      font-size: 0.78rem; color: var(--text-muted);
+      margin-bottom: 1rem; line-height: 1.6;
+    }
+
+    /* ─── Roll Button ─── */
+    .roll-btn-wrap { text-align: center; margin: 2.5rem 0 2rem; }
+
+    #roll-btn {
+      position: relative;
+      padding: 1.1rem 3.5rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #6040e8 0%, var(--accent) 50%, var(--accent2) 100%);
+      border: none; border-radius: 60px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      box-shadow: 0 8px 36px var(--glow), 0 2px 0 rgba(255,255,255,0.1) inset;
+      transition: transform 0.15s, box-shadow 0.2s;
+      overflow: hidden;
+    }
+    #roll-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    #roll-btn:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 14px 48px var(--glow), 0 2px 0 rgba(255,255,255,0.1) inset;
+    }
+    #roll-btn:active { transform: scale(0.96); }
+    #roll-btn:disabled {
+      opacity: 0.45; cursor: not-allowed;
+      transform: none; box-shadow: none;
+    }
+
+    /* Ripple on roll button */
+    #roll-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      transform: scale(0);
+      animation: rippleAnim 0.6s linear;
+      pointer-events: none;
+    }
+    @keyframes rippleAnim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* ─── Dice Arena ─── */
+    #dice-arena {
+      min-height: 150px;
+      display: flex; flex-wrap: wrap; justify-content: center;
+      align-items: center; gap: 2rem;
+      margin-bottom: 2.5rem;
+      padding: 1rem;
+    }
+
+    /* ─── 3D Die ─── */
+    .die-3d-wrap {
+      width: 96px; height: 96px;
+      perspective: 500px;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+    }
+    .die-3d {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(0deg) rotateY(0deg);
+    }
+    .die-3d.rolling {
+      animation: roll3d 1s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    }
+    @keyframes roll3d {
+      0%   { transform: rotateX(0)      rotateY(0)      rotateZ(0)      scale3d(1,1,1); }
+      8%   { transform: rotateX(60deg)  rotateY(120deg) rotateZ(45deg)  scale3d(1.2,1.2,1.2); }
+      22%  { transform: rotateX(200deg) rotateY(300deg) rotateZ(-60deg) scale3d(0.85,0.85,0.85); }
+      40%  { transform: rotateX(390deg) rotateY(520deg) rotateZ(80deg)  scale3d(1.12,1.12,1.12); }
+      58%  { transform: rotateX(560deg) rotateY(700deg) rotateZ(-25deg) scale3d(0.95,0.95,0.95); }
+      74%  { transform: rotateX(680deg) rotateY(800deg) rotateZ(10deg)  scale3d(1.04,1.04,1.04); }
+      87%  { transform: rotateX(740deg) rotateY(850deg) rotateZ(-4deg)  scale3d(0.99,0.99,0.99); }
+      100% { transform: rotateX(var(--end-rx)) rotateY(var(--end-ry)) rotateZ(0) scale3d(1,1,1); }
+    }
+
+    .die-face {
+      position: absolute;
+      width: 96px; height: 96px;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; font-weight: 900;
+      color: #fff;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .die-face.f-front  { transform: translateZ(48px); }
+    .die-face.f-back   { transform: rotateY(180deg) translateZ(48px); }
+    .die-face.f-right  { transform: rotateY(90deg)  translateZ(48px); }
+    .die-face.f-left   { transform: rotateY(-90deg) translateZ(48px); }
+    .die-face.f-top    { transform: rotateX(90deg)  translateZ(48px); }
+    .die-face.f-bottom { transform: rotateX(-90deg) translateZ(48px); }
+
+    /* Die gradient colors */
+    .die-color-0 .die-face { background: linear-gradient(145deg, #6038e0, #8060ff); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-1 .die-face { background: linear-gradient(145deg, #c01040, #f04575); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-2 .die-face { background: linear-gradient(145deg, #0870b0, #20b0f0); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-3 .die-face { background: linear-gradient(145deg, #a06010, #e0a030); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-4 .die-face { background: linear-gradient(145deg, #0c7840, #20d070); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-5 .die-face { background: linear-gradient(145deg, #a01818, #e04040); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-6 .die-face { background: linear-gradient(145deg, #7010b0, #b840f0); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+    .die-color-7 .die-face { background: linear-gradient(145deg, #107850, #30e0a0); box-shadow: inset 0 2px 8px rgba(255,255,255,0.15); }
+
+    /* ─── Result Section ─── */
+    #result-section { margin-bottom: 3rem; }
+    .result-section-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    .drag-hint {
+      font-size: 0.78rem; color: var(--text-muted);
+      font-style: italic;
+    }
+
+    #result-cards {
+      display: flex; flex-wrap: wrap; gap: 1.25rem;
+      min-height: 60px;
+      justify-content: center;
+    }
+
+    .result-card {
+      position: relative;
+      /* Each card takes equal share of the row, min 200px */
+      flex: 1 1 200px;
+      max-width: 320px;
+      padding: 2.5rem 1.5rem 2.2rem;
+      border-radius: 28px;
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.2s cubic-bezier(.3,1.4,.6,1),
+                  box-shadow 0.2s, opacity 0.2s;
+      border: 3px solid rgba(255,255,255,0.18);
+    }
+    .result-card:active { cursor: grabbing; }
+
+    .result-card.dragging {
+      opacity: 0.55;
+      transform: rotate(4deg) scale(1.06) !important;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.65) !important;
+      z-index: 999;
+    }
+    .result-card.drag-over {
+      transform: scale(1.05) !important;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.7), 0 16px 50px rgba(0,0,0,0.4) !important;
+    }
+
+    .result-card .card-die-label {
+      font-size: 1rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      opacity: 0.75; margin-bottom: 0.6rem;
+    }
+    .result-card .card-value {
+      /* Scales with viewport: huge on desktop projector, still big on mobile */
+      font-size: clamp(4rem, 10vw, 9rem);
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 4px 28px rgba(0,0,0,0.3);
+      letter-spacing: -0.02em;
+    }
+    .result-card .card-num {
+      position: absolute; top: 12px; right: 16px;
+      font-size: 0.8rem; font-weight: 700;
+      opacity: 0.5; letter-spacing: 0.06em;
+    }
+
+    /* Card colors */
+    .card-color-0 { background: linear-gradient(145deg, #3a20b0, #6040e0); color: #fff; box-shadow: 0 8px 30px rgba(80,40,220,0.35); }
+    .card-color-1 { background: linear-gradient(145deg, #b01030, #e84070); color: #fff; box-shadow: 0 8px 30px rgba(200,30,80,0.35); }
+    .card-color-2 { background: linear-gradient(145deg, #0860a0, #20a8e8); color: #fff; box-shadow: 0 8px 30px rgba(20,140,220,0.35); }
+    .card-color-3 { background: linear-gradient(145deg, #906010, #d09020); color: #fff; box-shadow: 0 8px 30px rgba(180,130,20,0.35); }
+    .card-color-4 { background: linear-gradient(145deg, #0c7038, #18c068); color: #fff; box-shadow: 0 8px 30px rgba(20,160,90,0.35); }
+    .card-color-5 { background: linear-gradient(145deg, #901010, #d83838); color: #fff; box-shadow: 0 8px 30px rgba(180,30,30,0.35); }
+    .card-color-6 { background: linear-gradient(145deg, #6010a0, #a838e0); color: #fff; box-shadow: 0 8px 30px rgba(140,30,200,0.35); }
+    .card-color-7 { background: linear-gradient(145deg, #0c7050, #18d098); color: #fff; box-shadow: 0 8px 30px rgba(20,180,140,0.35); }
+
+    /* Card appear animation */
+    @keyframes card-pop {
+      0%   { opacity: 0; transform: translateY(28px) scale(0.78) rotate(-3deg); }
+      70%  { transform: translateY(-4px) scale(1.04) rotate(1deg); }
+      100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+    }
+    .result-card { animation: card-pop 0.45s cubic-bezier(.3,1.5,.6,1) both; }
+
+    /* ─── Result Summary ─── */
+    #result-text {
+      text-align: center; margin-top: 1.25rem;
+      font-size: 0.95rem; color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* ─── History ─── */
+    #history-section { padding: 1.75rem; }
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    #clear-history-btn {
+      padding: 0.42rem 1.1rem;
+      background: rgba(252,80,80,0.1);
+      border: 1px solid rgba(252,80,80,0.25);
+      color: #ff8080;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      letter-spacing: 0.03em;
+    }
+    #clear-history-btn:hover {
+      background: rgba(252,80,80,0.25);
+      border-color: rgba(252,80,80,0.5);
+      color: #fff;
+    }
+
+    #history-list { display: flex; flex-direction: column; gap: 0.55rem; }
+
+    .history-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem 1.1rem;
+      display: flex; align-items: center; gap: 1rem;
+      flex-wrap: wrap;
+      transition: border-color 0.2s;
+    }
+    .history-item:hover { border-color: rgba(124,92,252,0.2); }
+    .history-time {
+      font-size: 0.72rem; color: var(--text-muted);
+      font-weight: 600; white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .history-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .history-chip {
+      padding: 0.22rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.88rem; font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .no-history {
+      text-align: center; color: var(--text-muted);
+      font-size: 0.9rem; padding: 2rem 0;
+    }
+
+    /* ─── Separator ─── */
+    .sep { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 580px) {
+      .die-config { grid-template-columns: 1fr; }
+      .result-card .card-value { font-size: 2.4rem; }
+      #roll-btn { font-size: 1.1rem; padding: 0.9rem 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-dots"></div>
+
+<header>
+  <div class="header-badge">✨ Dice Roller</div>
+  <h1>🎲 ลูกเต๋ามหัศจรรย์</h1>
+  <p>กำหนดลูกเต๋าเอง · แอนิเมชั่นสมจริง · ดูผลแบบการ์ด</p>
+</header>
+
+<div class="container">
+
+  <!-- Setup -->
+  <section id="setup-section" class="glass">
+    <div class="section-title">⚙️ ตั้งค่าลูกเต๋า</div>
+
+    <div class="dice-count-row">
+      <label>จำนวนลูกเต๋า</label>
+      <div class="count-control">
+        <button class="count-btn" id="dec-btn" aria-label="ลดจำนวนลูกเต๋า">−</button>
+        <span id="dice-count-display">2</span>
+        <button class="count-btn" id="inc-btn" aria-label="เพิ่มจำนวนลูกเต๋า">+</button>
+      </div>
+    </div>
+
+    <div class="section-title">✏️ กำหนดข้อความแต่ละด้าน</div>
+    <p class="hint">ใส่ข้อความ 6 ด้านคั่นด้วยจุลภาค เช่น <strong>a, e, i, o, u, y</strong> &nbsp;|&nbsp; หากใส่ไม่ครบจะใช้ตัวเลข 1–6 แทน</p>
+    <div id="dice-configs"></div>
+  </section>
+
+  <!-- Roll -->
+  <div class="roll-btn-wrap">
+    <button id="roll-btn" aria-label="โยนลูกเต๋า">🎲 โยนลูกเต๋า!</button>
+  </div>
+
+  <!-- 3D Dice Arena -->
+  <div id="dice-arena"></div>
+
+  <!-- Result Cards -->
+  <section id="result-section" style="display:none;">
+    <div class="result-section-header">
+      <div class="section-title" style="margin-bottom:0">🃏 ผลการโยน</div>
+      <span class="drag-hint">↔ ลากการ์ดเพื่อเรียงลำดับใหม่</span>
+    </div>
+    <div id="result-cards"></div>
+    <p id="result-text"></p>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- History -->
+  <section id="history-section" class="glass">
+    <div class="history-header">
+      <div class="section-title" style="margin-bottom:0">📜 ประวัติการโยน</div>
+      <button id="clear-history-btn" aria-label="ล้างประวัติทั้งหมด">🗑 ล้างประวัติ</button>
+    </div>
+    <div id="history-list"></div>
+  </section>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   Constants & State
+══════════════════════════════════════════════ */
+const CARD_COLORS = [
+  '#3a20b0','#b01030','#0860a0','#906010',
+  '#0c7038','#901010','#6010a0','#0c7050'
+];
+const MAX_DICE = 8;
+const MIN_DICE = 1;
+const HISTORY_KEY = 'luktao_history_v3';
+
+let diceCount = 2;
+let diceConfigs = [];   // [{ inputEl }]
+let dragSrcIdx = null;
+let _lastResults = [];
+let _lastFaces = [];
+let cardOrder = [];
+
+/* ════════════════════════════════════════════
+   Utility
+══════════════════════════════════════════════ */
+const colorClass = i => `card-color-${i % 8}`;
+const dieColorClass = i => `die-color-${i % 8}`;
+
+function getFaces(cfg) {
+  const raw = cfg.inputEl ? cfg.inputEl.value : '';
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const defaults = ['1','2','3','4','5','6'];
+  return defaults.map((d, i) => parts[i] || d);
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleString('th-TH', {
+    hour12: false,
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
+/* ════════════════════════════════════════════
+   Dice Config UI
+══════════════════════════════════════════════ */
+function buildDiceConfigs() {
+  const container = document.getElementById('dice-configs');
+  const oldValues = diceConfigs.map(c => c.inputEl ? c.inputEl.value : '');
+  diceConfigs = [];
+  container.innerHTML = '';
+
+  for (let i = 0; i < diceCount; i++) {
+    const cfg = {};
+    const row = document.createElement('div');
+    row.className = 'die-config';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'die-label';
+    lbl.textContent = `ลูก ${i + 1}`;
+    lbl.style.background = CARD_COLORS[i % 8];
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.id = `die-input-${i}`;
+    inp.placeholder = '1, 2, 3, 4, 5, 6';
+    inp.value = oldValues[i] || '';
+    inp.setAttribute('aria-label', `ข้อความลูกเต๋าที่ ${i + 1} (6 ด้าน คั่นจุลภาค)`);
+
+    cfg.inputEl = inp;
+    row.appendChild(lbl);
+    row.appendChild(inp);
+    container.appendChild(row);
+    diceConfigs.push(cfg);
+  }
+}
+
+/* ════════════════════════════════════════════
+   Count Controls
+══════════════════════════════════════════════ */
+function updateCount() {
+  document.getElementById('dice-count-display').textContent = diceCount;
+  buildDiceConfigs();
+  buildArena();
+}
+document.getElementById('inc-btn').addEventListener('click', () => {
+  if (diceCount < MAX_DICE) { diceCount++; updateCount(); }
+});
+document.getElementById('dec-btn').addEventListener('click', () => {
+  if (diceCount > MIN_DICE) { diceCount--; updateCount(); }
+});
+
+/* ════════════════════════════════════════════
+   3D Dice Arena
+══════════════════════════════════════════════ */
+function buildArena() {
+  const arena = document.getElementById('dice-arena');
+  arena.innerHTML = '';
+  for (let i = 0; i < diceCount; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'die-3d-wrap';
+
+    const die = document.createElement('div');
+    die.className = `die-3d ${dieColorClass(i)}`;
+    die.id = `die3d-${i}`;
+
+    [
+      ['f-front', 'translateZ(48px)'],
+      ['f-back',  'rotateY(180deg) translateZ(48px)'],
+      ['f-right', 'rotateY(90deg) translateZ(48px)'],
+      ['f-left',  'rotateY(-90deg) translateZ(48px)'],
+      ['f-top',   'rotateX(90deg) translateZ(48px)'],
+      ['f-bottom','rotateX(-90deg) translateZ(48px)'],
+    ].forEach(([cls]) => {
+      const face = document.createElement('div');
+      face.className = `die-face ${cls}`;
+      face.textContent = '?';
+      die.appendChild(face);
+    });
+
+    wrap.appendChild(die);
+    arena.appendChild(wrap);
+  }
+}
+
+/* ─── Face index → end rotation so that face shows front ─── */
+// Layout: face0=front, face1=back, face2=right, face3=left, face4=top, face5=bottom
+const FACE_TO_ROT = [
+  { rx:   0, ry:   0 },  // front → no rotation needed
+  { rx:   0, ry: 180 },  // back
+  { rx:   0, ry: -90 },  // right face → rotate left so it faces camera
+  { rx:   0, ry:  90 },  // left face
+  { rx: -90, ry:   0 },  // top
+  { rx:  90, ry:   0 },  // bottom
+];
+
+/* ════════════════════════════════════════════
+   Roll
+══════════════════════════════════════════════ */
+async function roll() {
+  const btn = document.getElementById('roll-btn');
+  btn.disabled = true;
+  rippleBtn(btn);
+
+  const allFaces = diceConfigs.map(c => getFaces(c));
+  const pickedFaceIdx = allFaces.map(() => Math.floor(Math.random() * 6));
+  const results = pickedFaceIdx.map((fi, di) => allFaces[di][fi]);
+
+  // Update all die faces text then animate
+  const promises = pickedFaceIdx.map((faceIdx, i) => {
+    return new Promise(resolve => {
+      const die = document.getElementById(`die3d-${i}`);
+      if (!die) return resolve();
+
+      // Set face text
+      die.querySelectorAll('.die-face').forEach((fd, fi) => {
+        fd.textContent = allFaces[i][fi] || String(fi + 1);
+      });
+
+      // Remove old state
+      die.classList.remove('rolling');
+      die.style.transform = '';
+      void die.offsetWidth;
+
+      // Target rotation (add 720 for extra spin)
+      const { rx, ry } = FACE_TO_ROT[faceIdx];
+      const endRx = 720 + rx;
+      const endRy = 720 + ry;
+      die.style.setProperty('--end-rx', `${endRx}deg`);
+      die.style.setProperty('--end-ry', `${endRy}deg`);
+
+      const delay = i * 90;
+      setTimeout(() => {
+        die.classList.add('rolling');
+        die.addEventListener('animationend', () => {
+          die.classList.remove('rolling');
+          die.style.transform = `rotateX(${endRx}deg) rotateY(${endRy}deg)`;
+          resolve();
+        }, { once: true });
+      }, delay);
+    });
+  });
+
+  await Promise.all(promises);
+
+  showResultCards(results, allFaces);
+  saveHistory(results);
+  renderHistory();
+
+  btn.disabled = false;
+}
+
+/* Button ripple effect */
+function rippleBtn(btn) {
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const d = Math.max(btn.offsetWidth, btn.offsetHeight);
+  r.style.width = r.style.height = d + 'px';
+  r.style.left = '50%'; r.style.top = '50%';
+  r.style.marginLeft = r.style.marginTop = -d/2 + 'px';
+  btn.appendChild(r);
+  r.addEventListener('animationend', () => r.remove());
+}
+
+document.getElementById('roll-btn').addEventListener('click', roll);
+
+/* ════════════════════════════════════════════
+   Result Cards
+══════════════════════════════════════════════ */
+function showResultCards(results, faces) {
+  _lastResults = results;
+  _lastFaces = faces;
+  cardOrder = results.map((_, i) => i);
+
+  const section = document.getElementById('result-section');
+  section.style.display = 'block';
+  section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  renderCards();
+}
+
+function renderCards() {
+  const container = document.getElementById('result-cards');
+  container.innerHTML = '';
+
+  cardOrder.forEach((origIdx, pos) => {
+    const card = document.createElement('div');
+    card.className = `result-card ${colorClass(origIdx)}`;
+    card.draggable = true;
+    card.dataset.pos = String(pos);
+    card.style.animationDelay = `${pos * 0.08}s`;
+
+    card.innerHTML = `
+      <div class="card-num">#${pos + 1}</div>
+      <div class="card-die-label">ลูกเต๋า ${origIdx + 1}</div>
+      <div class="card-value">${_lastResults[origIdx]}</div>
+    `;
+
+    card.addEventListener('dragstart', onDragStart);
+    card.addEventListener('dragover',  onDragOver);
+    card.addEventListener('drop',      onDrop);
+    card.addEventListener('dragend',   onDragEnd);
+    card.addEventListener('touchstart', onTouchStart, { passive: true });
+    card.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    card.addEventListener('touchend',   onTouchEnd);
+
+    container.appendChild(card);
+  });
+
+  updateResultText();
+}
+
+function updateResultText() {
+  const text = document.getElementById('result-text');
+  text.textContent = `ผลลัพธ์: ${cardOrder.map(i => _lastResults[i]).join(' · ')}`;
+}
+
+/* ════════════════════════════════════════════
+   Drag & Drop (Mouse)
+══════════════════════════════════════════════ */
+function onDragStart(e) {
+  dragSrcIdx = parseInt(e.currentTarget.dataset.pos);
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.result-card').forEach(c => c.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  const targetIdx = parseInt(e.currentTarget.dataset.pos);
+  if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+    const tmp = cardOrder[dragSrcIdx];
+    cardOrder[dragSrcIdx] = cardOrder[targetIdx];
+    cardOrder[targetIdx] = tmp;
+    dragSrcIdx = null;
+    renderCards();
+  }
+}
+function onDragEnd() {
+  dragSrcIdx = null;
+  document.querySelectorAll('.result-card').forEach(c =>
+    c.classList.remove('dragging', 'drag-over')
+  );
+}
+
+/* ════════════════════════════════════════════
+   Touch Drag (Mobile)
+══════════════════════════════════════════════ */
+let touchSrcIdx = null;
+let touchClone = null;
+
+function onTouchStart(e) {
+  touchSrcIdx = parseInt(e.currentTarget.dataset.pos);
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  if (touchSrcIdx === null) return;
+  const t = e.touches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const card = el && el.closest('.result-card');
+  document.querySelectorAll('.result-card').forEach(c => c.classList.remove('drag-over'));
+  if (card) card.classList.add('drag-over');
+}
+function onTouchEnd(e) {
+  if (touchSrcIdx === null) return;
+  const t = e.changedTouches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const targetCard = el && el.closest('.result-card');
+  if (targetCard) {
+    const targetIdx = parseInt(targetCard.dataset.pos);
+    if (touchSrcIdx !== targetIdx) {
+      const tmp = cardOrder[touchSrcIdx];
+      cardOrder[touchSrcIdx] = cardOrder[targetIdx];
+      cardOrder[targetIdx] = tmp;
+      renderCards();
+    }
+  }
+  document.querySelectorAll('.result-card').forEach(c => c.classList.remove('drag-over'));
+  touchSrcIdx = null;
+}
+
+/* ════════════════════════════════════════════
+   History
+══════════════════════════════════════════════ */
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+function saveHistory(results) {
+  const h = loadHistory();
+  h.unshift({ ts: Date.now(), results });
+  if (h.length > 60) h.length = 60;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const h = loadHistory();
+  list.innerHTML = '';
+  if (!h.length) {
+    list.innerHTML = '<div class="no-history">🎲 ยังไม่มีประวัติการโยน — เริ่มโยนลูกเต๋าได้เลย!</div>';
+    return;
+  }
+  h.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const chips = entry.results.map((r, i) =>
+      `<span class="history-chip" style="background:${CARD_COLORS[i % 8]}">${r}</span>`
+    ).join('');
+    item.innerHTML = `
+      <span class="history-time">${fmtTime(entry.ts)}</span>
+      <div class="history-chips">${chips}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('clear-history-btn').addEventListener('click', () => {
+  if (confirm('ล้างประวัติการโยนทั้งหมดใช่หรือไม่?')) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  }
+});
+
+/* ════════════════════════════════════════════
+   Init
+══════════════════════════════════════════════ */
+buildDiceConfigs();
+buildArena();
+renderHistory();
+</script>
+</body>
+</html>
